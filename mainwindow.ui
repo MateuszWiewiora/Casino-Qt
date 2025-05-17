@@ -17,10 +17,10 @@
    <widget class="QPushButton" name="Minigame1_Button">
     <property name="geometry">
      <rect>
-      <x>160</x>
-      <y>10</y>
-      <width>111</width>
-      <height>41</height>
+      <x>210</x>
+      <y>20</y>
+      <width>90</width>
+      <height>30</height>
      </rect>
     </property>
     <property name="text">
@@ -30,10 +30,10 @@
    <widget class="QPushButton" name="Minigame2_Button">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>10</y>
-      <width>111</width>
-      <height>51</height>
+      <x>330</x>
+      <y>20</y>
+      <width>90</width>
+      <height>30</height>
      </rect>
     </property>
     <property name="text">
@@ -43,10 +43,10 @@
    <widget class="QPushButton" name="Minigame3_Button">
     <property name="geometry">
      <rect>
-      <x>440</x>
-      <y>10</y>
-      <width>101</width>
-      <height>31</height>
+      <x>450</x>
+      <y>20</y>
+      <width>90</width>
+      <height>30</height>
      </rect>
     </property>
     <property name="text">
@@ -58,8 +58,8 @@
      <rect>
       <x>600</x>
       <y>10</y>
-      <width>83</width>
-      <height>29</height>
+      <width>80</width>
+      <height>30</height>
      </rect>
     </property>
     <property name="text">
@@ -71,8 +71,8 @@
      <rect>
       <x>690</x>
       <y>10</y>
-      <width>83</width>
-      <height>29</height>
+      <width>80</width>
+      <height>30</height>
      </rect>
     </property>
     <property name="text">
@@ -83,9 +83,9 @@
     <property name="geometry">
      <rect>
       <x>620</x>
-      <y>40</y>
-      <width>131</width>
-      <height>29</height>
+      <y>45</y>
+      <width>130</width>
+      <height>30</height>
      </rect>
     </property>
     <property name="text">
@@ -95,27 +95,74 @@
    <widget class="QStackedWidget" name="stackedWidget">
     <property name="geometry">
      <rect>
-      <x>29</x>
-      <y>99</y>
-      <width>731</width>
-      <height>431</height>
+      <x>25</x>
+      <y>100</y>
+      <width>750</width>
+      <height>450</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="homeWidget">
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="homeMinigame1_Button">
       <property name="geometry">
        <rect>
-        <x>330</x>
-        <y>200</y>
-        <width>83</width>
-        <height>29</height>
+        <x>75</x>
+        <y>80</y>
+        <width>150</width>
+        <height>150</height>
        </rect>
       </property>
       <property name="text">
-       <string>home</string>
+       <string>Minigame 1</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="homeMinigame2_Button">
+      <property name="geometry">
+       <rect>
+        <x>300</x>
+        <y>80</y>
+        <width>150</width>
+        <height>150</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Minigame 2</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="homeMinigame3_Button">
+      <property name="geometry">
+       <rect>
+        <x>525</x>
+        <y>80</y>
+        <width>150</width>
+        <height>150</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Minigame 3</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="cashLabel">
+      <property name="geometry">
+       <rect>
+        <x>75</x>
+        <y>300</y>
+        <width>600</width>
+        <height>60</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;money&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
       </property>
      </widget>
     </widget>
@@ -168,10 +215,10 @@
    <widget class="QPushButton" name="homeButton">
     <property name="geometry">
      <rect>
-      <x>40</x>
+      <x>90</x>
       <y>20</y>
-      <width>83</width>
-      <height>29</height>
+      <width>90</width>
+      <height>30</height>
      </rect>
     </property>
     <property name="text">

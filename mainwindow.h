@@ -26,6 +26,14 @@ private slots:
 
     void on_Minigame3_Button_clicked();
 
+    void on_homeMinigame1_Button_clicked();
+
+    void on_homeMinigame2_Button_clicked();
+
+    void on_homeMinigame3_Button_clicked();
+
+    void updateMoneyDisplay(int money);
+
 private:
     Ui::MainWindow *ui;
 };

@@ -7,6 +7,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    updateMoneyDisplay(100);
 }
 
 MainWindow::~MainWindow()
@@ -33,4 +34,24 @@ void MainWindow::on_Minigame3_Button_clicked()
 {
     ui->stackedWidget->setCurrentIndex(3);
 }
+
+void MainWindow::on_homeMinigame1_Button_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(1);
+}
+
+void MainWindow::on_homeMinigame2_Button_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(2);
+}
+
+void MainWindow::on_homeMinigame3_Button_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(3);
+}
+
+void MainWindow::updateMoneyDisplay(int money) {
+    ui->cashLabel->setText("💰 Cash amount: " + QString::number(money) + "$");
+}
+
 
