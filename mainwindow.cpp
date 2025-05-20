@@ -139,13 +139,14 @@ bool MainWindow::placeBet(double amount)
 
     if (rand() % 2)
     {
-        qDebug() << "Win" << amount << "->" << amount * 0.99;
         playerBalance += amount * 0.99;
+        playerBalance = std::floor(playerBalance * 100) / 100;
         showWinAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
     }
     else
     {
         playerBalance -= amount;
+        playerBalance = std::floor(playerBalance * 100) / 100;
         showLoseAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
         showWinAnimation(getSelectedOption() == 1 ? option2Label : option1Label);
     }
