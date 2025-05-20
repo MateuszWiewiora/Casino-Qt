@@ -15,14 +15,12 @@ LoginWindow::~LoginWindow()
     delete ui;
 }
 
-void LoginWindow::on_goregisterButton_clicked()
-{
-    ui->stackedWidget->setCurrentIndex(1);
-}
-
-
 void LoginWindow::on_gologinButton_clicked()
 {
     ui->stackedWidget->setCurrentIndex(0);
 }
 
+void LoginWindow::on_goregisterButton_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(1);
+}
