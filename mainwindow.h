@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "loginwindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -35,7 +36,10 @@ private slots:
 
     void updateMoneyDisplay(int money);
 
+    void on_LoginButton_clicked();
+
 private:
     Ui::MainWindow *ui;
+    LoginWindow *loginWindow;
 };
 #endif // MAINWINDOW_H
