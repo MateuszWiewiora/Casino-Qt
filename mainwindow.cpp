@@ -54,4 +54,13 @@ void MainWindow::updateMoneyDisplay(int money) {
     ui->cashLabel->setText("💰 Cash amount: " + QString::number(money) + "$");
 }
 
+void MainWindow::on_LoginButton_clicked()
+{
+    loginWindow = new LoginWindow();
+    connect(loginWindow, &LoginWindow::returnToMain, this, &MainWindow::show);
+    connect(loginWindow, &LoginWindow::returnToMain, loginWindow, &QWidget::close);
+
+    loginWindow->show();
+    this->hide();  // ukryj MainWindow, nie zamykaj
+}
 
