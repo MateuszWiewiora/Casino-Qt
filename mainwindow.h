@@ -31,7 +31,7 @@ private slots:
     void on_homeMinigame1_Button_clicked();
     void on_homeMinigame2_Button_clicked();
     void on_homeMinigame3_Button_clicked();
-    void updateMoneyDisplay(double money);
+    void updateMoneyDisplay(long money);
     void on_LoginButton_clicked();
     void on_betButton_clicked();
     void on_option1Label_clicked();
@@ -65,7 +65,7 @@ private:
     QTimer *initTimer;
     ClickableLabel *winningLabel = nullptr;
     ClickableLabel *losingLabel = nullptr;
-    double playerBalance = 100.0;
+    long playerBalance = 10000;
     bool ANIMATION_MODE = false;
 };
 #endif // MAINWINDOW_H

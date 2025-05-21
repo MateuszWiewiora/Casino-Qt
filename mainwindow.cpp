@@ -103,9 +103,10 @@ void MainWindow::on_homeMinigame3_Button_clicked()
     ui->stackedWidget->setCurrentIndex(3);
 }
 
-void MainWindow::updateMoneyDisplay(double money)
+void MainWindow::updateMoneyDisplay(long money)
 {
-    ui->cashLabel->setText("💰" + QString::number(money, 'f', 2) + "$");
+    ui->cashLabel->setText("$" + QString::number(money / 100., 'f', 2));
+    updateBetAmountLimits();
 }
 
 void MainWindow::on_LoginButton_clicked()
@@ -132,27 +133,27 @@ void MainWindow::updateBetButtonState()
 
 bool MainWindow::placeBet(double amount)
 {
-    if (amount <= 0 || amount > playerBalance)
+    long amountLong = std::floor(amount * 100);
+
+    if (amountLong <= 0 || amountLong > playerBalance)
     {
+        qDebug() << amountLong << playerBalance;
         return false;
     }
 
     if (rand() % 2)
     {
-        playerBalance += amount * 0.99;
-        playerBalance = std::floor(playerBalance * 100) / 100;
+        playerBalance += amountLong * 99 / 100;
         showWinAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
     }
     else
     {
-        playerBalance -= amount;
-        playerBalance = std::floor(playerBalance * 100) / 100;
+        playerBalance -= amountLong;
         showLoseAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
         showWinAnimation(getSelectedOption() == 1 ? option2Label : option1Label);
     }
 
     updateMoneyDisplay(playerBalance);
-    updateBetAmountLimits();
 
     ANIMATION_MODE = true;
     ui->betButton->setEnabled(false);
@@ -279,14 +280,16 @@ int MainWindow::getSelectedOption() const
 void MainWindow::updateBetAmountLimits()
 {
     ui->doubleSpinBox->setMinimum(0.0);
-    ui->doubleSpinBox->setMaximum(playerBalance);
+    qDebug() << playerBalance;
+    qDebug() << playerBalance / 100.;
+    ui->doubleSpinBox->setMaximum(playerBalance / 100.);
 }
 
 void MainWindow::on_doubleButton_clicked()
 {
     double currentBet = ui->doubleSpinBox->value();
     double doubledBet = currentBet * 2;
-    double maximumAllowedBet = playerBalance;
+    double maximumAllowedBet = static_cast<double>(playerBalance) / 100.;
 
     ui->doubleSpinBox->setValue(std::min(doubledBet, maximumAllowedBet));
 }
@@ -329,7 +332,6 @@ void MainWindow::resetLoseAnimation()
 
 void MainWindow::on_workButton_clicked()
 {
-    playerBalance += 0.1;
-    ui->cashLabel->setText("💰" + QString::number(playerBalance, 'f', 2) + "$");
+    playerBalance += 10;
+    updateMoneyDisplay(playerBalance);
 }
-
