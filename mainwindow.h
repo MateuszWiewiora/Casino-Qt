@@ -44,6 +44,8 @@ private slots:
     void resetWinAnimation();
     void resetLoseAnimation();
 
+    void on_workButton_clicked();
+
 private:
     void updateBetButtonState();
     void deselectAll();

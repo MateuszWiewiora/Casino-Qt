@@ -105,7 +105,7 @@ void MainWindow::on_homeMinigame3_Button_clicked()
 
 void MainWindow::updateMoneyDisplay(double money)
 {
-    ui->cashLabel->setText("$" + QString::number(money, 'f', 2));
+    ui->cashLabel->setText("💰" + QString::number(money, 'f', 2) + "$");
 }
 
 void MainWindow::on_LoginButton_clicked()
@@ -326,3 +326,10 @@ void MainWindow::resetLoseAnimation()
         losingLabel = nullptr;
     }
 }
+
+void MainWindow::on_workButton_clicked()
+{
+    playerBalance += 0.1;
+    ui->cashLabel->setText("💰" + QString::number(playerBalance, 'f', 2) + "$");
+}
+
