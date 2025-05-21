@@ -11,6 +11,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ui->option1Label->setScaledContents(true); //to delete
+    ui->option2Label->setScaledContents(true); //to delete
     srand(time(0));
 
     updateMoneyDisplay(playerBalance);
@@ -210,15 +212,30 @@ QStringList MainWindow::getAvailableImages()
 
 void MainWindow::updateOptionDisplay(const QString &firstImagePath, const QString &secondImagePath)
 {
+    currentImage1Path = firstImagePath;
+    currentImage2Path = secondImagePath;
     // TODO: make it scale properly somehow
 
     QPixmap firstImage(firstImagePath);
-    option1Label->setPixmap(firstImage);
+    QPixmap originalPixmap1(firstImagePath);
+    QPixmap scaled1 = originalPixmap1.scaled(ui->option1Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    ui->option1Label->setPixmap(scaled1);
     ui->option1NameLabel->setText(formatImageName(firstImagePath));
 
     QPixmap secondImage(secondImagePath);
-    option2Label->setPixmap(secondImage);
+    QPixmap originalPixmap2(secondImagePath);
+    QPixmap scaled2 = originalPixmap2.scaled(ui->option2Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    ui->option2Label->setPixmap(scaled1);
     ui->option2NameLabel->setText(formatImageName(secondImagePath));
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    qDebug() << "Resized to:" << size();
+    if (!currentImage1Path.isEmpty() && !currentImage2Path.isEmpty()) {
+        updateOptionDisplay(currentImage1Path, currentImage2Path);
+    }
 }
 
 QString MainWindow::formatImageName(const QString &imagePath)
