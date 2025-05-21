@@ -19,8 +19,8 @@ public:
     explicit ClickableLabel(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     ~ClickableLabel();
 
-    bool isSelected() const { return selected; }
-    void setSelected(bool value);
+    bool isSelected() const { return m_selected; }
+    void setSelected(bool selected);
 
 signals:
     void clicked();
@@ -30,7 +30,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
 
 private:
-    bool selected = false;
+    bool m_selected = false;
     void updateStyle();
 };
 

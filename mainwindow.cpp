@@ -11,8 +11,6 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->option1Label->setScaledContents(true); //to delete
-    ui->option2Label->setScaledContents(true); //to delete
     srand(time(0));
 
     updateMoneyDisplay(playerBalance);
@@ -24,6 +22,18 @@ MainWindow::MainWindow(QWidget *parent)
     // Copy properties from the original labels
     option1Label->setGeometry(ui->option1Label->geometry());
     option2Label->setGeometry(ui->option2Label->geometry());
+
+    // Set properties for labels to work well with background images
+    option1Label->setAlignment(Qt::AlignCenter);
+    option2Label->setAlignment(Qt::AlignCenter);
+
+    // Set size policy to make labels resize with containers
+    option1Label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    option2Label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    // Set minimum size to avoid collapse
+    option1Label->setMinimumSize(100, 100);
+    option2Label->setMinimumSize(100, 100);
 
     // Connect the click signals
     connect(option1Label, &ClickableLabel::clicked, this, &MainWindow::on_option1Label_clicked);
@@ -42,16 +52,31 @@ MainWindow::MainWindow(QWidget *parent)
     if (layout1)
     {
         layout1->replaceWidget(ui->option1Label, option1Label);
-        QPixmap pixmap(":/assets/bombardiro_crocodillo.png");
-        option1Label->setAlignment(Qt::AlignCenter);
-        option1Label->setPixmap(pixmap);
+        QString style1 = QString("QLabel { background-image: url(qrc:/assets/bombardiro_crocodillo.png); "
+                                 "background-position: center; "
+                                 "background-repeat: no-repeat; "
+                                 "background-origin: content; "
+                                 "background-clip: content; "
+                                 "background-size: contain; "
+                                 "border: %1 %2; }")
+                             .arg(ClickableLabel::SELECTION_BORDER_STYLE)
+                             .arg(ClickableLabel::UNSELECTED_BORDER_COLOR);
+        option1Label->setStyleSheet(style1);
     }
+
     if (layout2)
     {
         layout2->replaceWidget(ui->option2Label, option2Label);
-        QPixmap pixmap(":/assets/tung_tung_tung_sahur.png");
-        option2Label->setAlignment(Qt::AlignCenter);
-        option2Label->setPixmap(pixmap);
+        QString style2 = QString("QLabel { background-image: url(qrc:/assets/tung_tung_tung_sahur.png); "
+                                 "background-position: center; "
+                                 "background-repeat: no-repeat; "
+                                 "background-origin: content; "
+                                 "background-clip: content; "
+                                 "background-size: contain; "
+                                 "border: %1 %2; }")
+                             .arg(ClickableLabel::SELECTION_BORDER_STYLE)
+                             .arg(ClickableLabel::UNSELECTED_BORDER_COLOR);
+        option2Label->setStyleSheet(style2);
     }
 
     delete ui->option1Label;
@@ -62,6 +87,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Set up bet amount limits
     updateBetAmountLimits();
+
+    QStringList availableImages = getAvailableImages();
+    if (availableImages.size() >= 2)
+    {
+        std::random_device randomDevice;
+        std::mt19937 randomGenerator(randomDevice());
+        std::shuffle(availableImages.begin(), availableImages.end(), randomGenerator);
+        updateOptionDisplay(availableImages[0], availableImages[1]);
+    }
 }
 
 MainWindow::~MainWindow()
@@ -175,11 +209,16 @@ void MainWindow::animationFinished()
     deselectAll();
 
     QStringList availableImages = getAvailableImages();
-    std::random_device randomDevice;
-    std::mt19937 randomGenerator(randomDevice());
-    std::shuffle(availableImages.begin(), availableImages.end(), randomGenerator);
+    if (availableImages.size() >= 2)
+    {
+        std::random_device randomDevice;
+        std::mt19937 randomGenerator(randomDevice());
+        std::shuffle(availableImages.begin(), availableImages.end(), randomGenerator);
 
-    updateOptionDisplay(availableImages[0], availableImages[1]);
+        updateOptionDisplay(availableImages[0], availableImages[1]);
+    }
+
+    updateBetButtonState();
 }
 
 void MainWindow::on_betButton_clicked()
@@ -212,30 +251,46 @@ QStringList MainWindow::getAvailableImages()
 
 void MainWindow::updateOptionDisplay(const QString &firstImagePath, const QString &secondImagePath)
 {
-    currentImage1Path = firstImagePath;
-    currentImage2Path = secondImagePath;
-    // TODO: make it scale properly somehow
+    // Convert paths for CSS usage
+    QString firstPathForCSS = firstImagePath;
+    firstPathForCSS.replace(":/", "qrc:/");
 
-    QPixmap firstImage(firstImagePath);
-    QPixmap originalPixmap1(firstImagePath);
-    QPixmap scaled1 = originalPixmap1.scaled(ui->option1Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    ui->option1Label->setPixmap(scaled1);
+    QString secondPathForCSS = secondImagePath;
+    secondPathForCSS.replace(":/", "qrc:/");
+
+    // Set background images via stylesheet
+    QString style1 = QString("QLabel { background-image: url(%1); "
+                             "background-position: center; "
+                             "background-repeat: no-repeat; "
+                             "background-origin: content; "
+                             "background-clip: content; "
+                             "background-size: contain; "
+                             "border: %2 %3; }")
+                         .arg(firstPathForCSS)
+                         .arg(ClickableLabel::SELECTION_BORDER_STYLE)
+                         .arg(ClickableLabel::UNSELECTED_BORDER_COLOR);
+
+    QString style2 = QString("QLabel { background-image: url(%1); "
+                             "background-position: center; "
+                             "background-repeat: no-repeat; "
+                             "background-origin: content; "
+                             "background-clip: content; "
+                             "background-size: contain; "
+                             "border: %2 %3; }")
+                         .arg(secondPathForCSS)
+                         .arg(ClickableLabel::SELECTION_BORDER_STYLE)
+                         .arg(ClickableLabel::UNSELECTED_BORDER_COLOR);
+
+    option1Label->setStyleSheet(style1);
+    option2Label->setStyleSheet(style2);
+
+    // Clear the pixmap to ensure stylesheet is used
+    option1Label->setPixmap(QPixmap());
+    option2Label->setPixmap(QPixmap());
+
+    // Update image names
     ui->option1NameLabel->setText(formatImageName(firstImagePath));
-
-    QPixmap secondImage(secondImagePath);
-    QPixmap originalPixmap2(secondImagePath);
-    QPixmap scaled2 = originalPixmap2.scaled(ui->option2Label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    ui->option2Label->setPixmap(scaled1);
     ui->option2NameLabel->setText(formatImageName(secondImagePath));
-}
-
-void MainWindow::resizeEvent(QResizeEvent *event)
-{
-    QMainWindow::resizeEvent(event);
-    qDebug() << "Resized to:" << size();
-    if (!currentImage1Path.isEmpty() && !currentImage2Path.isEmpty()) {
-        updateOptionDisplay(currentImage1Path, currentImage2Path);
-    }
 }
 
 QString MainWindow::formatImageName(const QString &imagePath)
@@ -314,23 +369,35 @@ void MainWindow::on_halfButton_clicked()
     double halvedBet = std::round((currentBet / 2) * 100) / 100;
     ui->doubleSpinBox->setValue(halvedBet);
 }
+
 void MainWindow::showWinAnimation(ClickableLabel *label)
 {
     winningLabel = label;
-    label->setStyleSheet(QString("QLabel { border: %1 %2; }").arg(ClickableLabel::SELECTION_BORDER_STYLE).arg("#00ff00"));
+
+    // Get the current stylesheet and modify only the border color
+    QString currentStyle = label->styleSheet();
+    currentStyle.replace(ClickableLabel::UNSELECTED_BORDER_COLOR, "#00ff00");
+    label->setStyleSheet(currentStyle);
 }
 
 void MainWindow::showLoseAnimation(ClickableLabel *label)
 {
     losingLabel = label;
-    label->setStyleSheet(QString("QLabel { border: %1 %2; }").arg(ClickableLabel::SELECTION_BORDER_STYLE).arg("#ff0000"));
+
+    // Get the current stylesheet and modify only the border color
+    QString currentStyle = label->styleSheet();
+    currentStyle.replace(ClickableLabel::UNSELECTED_BORDER_COLOR, "#ff0000");
+    label->setStyleSheet(currentStyle);
 }
 
 void MainWindow::resetWinAnimation()
 {
     if (winningLabel)
     {
-        winningLabel->setStyleSheet(QString("QLabel { border: %1 %2; }").arg(ClickableLabel::SELECTION_BORDER_STYLE).arg(ClickableLabel::UNSELECTED_BORDER_COLOR));
+        // Reset border color but keep the background image
+        QString currentStyle = winningLabel->styleSheet();
+        currentStyle.replace("#00ff00", ClickableLabel::UNSELECTED_BORDER_COLOR);
+        winningLabel->setStyleSheet(currentStyle);
         winningLabel = nullptr;
     }
 }
@@ -339,7 +406,10 @@ void MainWindow::resetLoseAnimation()
 {
     if (losingLabel)
     {
-        losingLabel->setStyleSheet(QString("QLabel { border: %1 %2; }").arg(ClickableLabel::SELECTION_BORDER_STYLE).arg(ClickableLabel::UNSELECTED_BORDER_COLOR));
+        // Reset border color but keep the background image
+        QString currentStyle = losingLabel->styleSheet();
+        currentStyle.replace("#ff0000", ClickableLabel::UNSELECTED_BORDER_COLOR);
+        losingLabel->setStyleSheet(currentStyle);
         losingLabel = nullptr;
     }
 }
@@ -349,4 +419,3 @@ void MainWindow::on_workButton_clicked()
     playerBalance += 0.1;
     ui->cashLabel->setText("💰" + QString::number(playerBalance, 'f', 2) + "$");
 }
-

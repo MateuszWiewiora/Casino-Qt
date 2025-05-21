@@ -53,15 +53,10 @@ private:
     bool placeBet(double amount);
     QStringList getAvailableImages();
     void updateOptionDisplay(const QString &firstImagePath, const QString &secondImagePath);
-    void resizeEvent(QResizeEvent *event) override; //scale png
-
-    QString currentImage1Path;
-    QString currentImage2Path;
     QString formatImageName(const QString &imagePath);
     void toggleOptionSelection(ClickableLabel *selectedLabel);
     void showWinAnimation(ClickableLabel *winningLabel);
     void showLoseAnimation(ClickableLabel *losingLabel);
-
 
     Ui::MainWindow *ui;
     LoginWindow *loginWindow;
