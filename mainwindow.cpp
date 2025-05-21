@@ -1,10 +1,8 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
     updateMoneyDisplay(100);
@@ -50,7 +48,8 @@ void MainWindow::on_homeMinigame3_Button_clicked()
     ui->stackedWidget->setCurrentIndex(3);
 }
 
-void MainWindow::updateMoneyDisplay(int money) {
+void MainWindow::updateMoneyDisplay(int money)
+{
     ui->cashLabel->setText("💰 Cash amount: " + QString::number(money) + "$");
 }
 
@@ -61,6 +60,5 @@ void MainWindow::on_LoginButton_clicked()
     connect(loginWindow, &LoginWindow::returnToMain, loginWindow, &QWidget::close);
 
     loginWindow->show();
-    this->hide();  // ukryj MainWindow, nie zamykaj
+    this->hide(); // ukryj MainWindow, nie zamykaj
 }
-
