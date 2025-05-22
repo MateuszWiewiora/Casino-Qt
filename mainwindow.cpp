@@ -6,6 +6,7 @@
 #include <random>
 #include <QDirIterator>
 #include <ctime>
+#include <QRandomGenerator>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -31,7 +32,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Connect bet amount changes
     connect(ui->doubleSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            this, &MainWindow::on_betAmountChanged);
+        this, &MainWindow::on_betAmountChanged);
+    connect(ui->doubleSpinBox2, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+        this, &MainWindow::on_betAmountChanged);
 
     // Replace the original labels in the layout
     QLayout *layout1 = ui->option1Label->parentWidget()->layout();
@@ -81,6 +84,9 @@ void MainWindow::on_Minigame1_Button_clicked()
 void MainWindow::on_Minigame2_Button_clicked()
 {
     ui->stackedWidget->setCurrentIndex(2);
+    resetMinigame2();
+    updateBetAmountLimits(); // Ensure bet limits are updated
+    updateRollButtonState(); // Update roll button state
 }
 
 void MainWindow::on_Minigame3_Button_clicked()
@@ -96,6 +102,9 @@ void MainWindow::on_homeMinigame1_Button_clicked()
 void MainWindow::on_homeMinigame2_Button_clicked()
 {
     ui->stackedWidget->setCurrentIndex(2);
+    resetMinigame2();
+    updateBetAmountLimits(); // Ensure bet limits are updated
+    updateRollButtonState(); // Update roll button state
 }
 
 void MainWindow::on_homeMinigame3_Button_clicked()
@@ -121,7 +130,13 @@ void MainWindow::on_LoginButton_clicked()
 
 void MainWindow::on_betAmountChanged(double value)
 {
-    updateBetButtonState();
+    if (ui->stackedWidget->currentIndex() == 1) {
+        // Minigame 1
+        updateBetButtonState();
+    } else if (ui->stackedWidget->currentIndex() == 2) {
+        // Minigame 2  
+        updateRollButtonState();
+    }
 }
 
 void MainWindow::updateBetButtonState()
@@ -280,9 +295,9 @@ int MainWindow::getSelectedOption() const
 void MainWindow::updateBetAmountLimits()
 {
     ui->doubleSpinBox->setMinimum(0.0);
-    qDebug() << playerBalance;
-    qDebug() << playerBalance / 100.;
     ui->doubleSpinBox->setMaximum(playerBalance / 100.);
+    ui->doubleSpinBox2->setMinimum(0.0);  // Add this
+    ui->doubleSpinBox2->setMaximum(playerBalance / 100.);
 }
 
 void MainWindow::on_doubleButton_clicked()
@@ -334,4 +349,155 @@ void MainWindow::on_workButton_clicked()
 {
     playerBalance += 10;
     updateMoneyDisplay(playerBalance);
+}
+
+void MainWindow::rollDices() {  
+    playerRoll = QRandomGenerator::global()->bounded(1, 11) + QRandomGenerator::global()->bounded(1, 11);  
+    casinoRoll = QRandomGenerator::global()->bounded(1, 11) + QRandomGenerator::global()->bounded(1, 11);  
+    ui->playerRollLabel->setText("Your roll: " + QString::number(playerRoll));
+    qDebug() << "Player rolled:" << playerRoll << "Casino rolled:" << casinoRoll;
+}  
+
+void MainWindow::checkAnswer(QString answer) {  
+    if (!minigame2WaitingForGuess) {
+        return;
+    }
+    
+    // Disable buttons to prevent multiple clicks
+    ui->moreButton->setEnabled(false);
+    ui->sameButton->setEnabled(false);
+    ui->lessButton->setEnabled(false);
+    
+    minigame2WaitingForGuess = false;
+    
+    bool correct = false;  
+    if (answer == "More" && casinoRoll > playerRoll) correct = true;  
+    if (answer == "Same" && casinoRoll == playerRoll) correct = true;  
+    if (answer == "Less" && casinoRoll < playerRoll) correct = true;  
+  
+    QString resultText = "Casino rolled: " + QString::number(casinoRoll) + ". ";
+    
+    if (correct) {  
+        // Win: get back bet + win the same amount (x2 multiplier)
+        playerBalance += currentDiceBet; // Double the bet amount
+        resultText += "CORRECT! You won $" + QString::number(currentDiceBet / 100.0, 'f', 2) + "!";
+    } else {  
+        // Lose: lose the bet amount
+        playerBalance -= currentDiceBet;
+        resultText += "WRONG! You lost $" + QString::number(currentDiceBet / 100.0, 'f', 2) + "!";
+    }  
+    
+    ui->resultLabel->setText(resultText);
+    updateMoneyDisplay(playerBalance);
+    
+    // Set up timer to reset the game after 3 seconds
+    QTimer::singleShot(3000, this, &MainWindow::resetMinigame2);
+}
+
+void MainWindow::on_moreButton_clicked()
+{
+    checkAnswer("More");
+}
+
+void MainWindow::on_sameButton_clicked()
+{
+    checkAnswer("Same");
+}
+
+void MainWindow::on_lessButton_clicked()
+{
+    checkAnswer("Less");
+}
+
+void MainWindow::resetMinigame2() {
+    // Reset the game state
+    playerRoll = 0;
+    casinoRoll = 0;
+    currentDiceBet = 0;
+    minigame2WaitingForGuess = false;
+    
+    // Reset UI elements
+    ui->playerRollLabel->setText("Click ROLL to play!");
+    ui->resultLabel->setText("Place your bet and roll the dice!");
+    
+    // Disable guess buttons initially
+    ui->moreButton->setEnabled(false);
+    ui->sameButton->setEnabled(false);
+    ui->lessButton->setEnabled(false);
+    
+    // Enable roll button
+    ui->rollButton->setEnabled(true);
+    
+    // Update money display and bet limits
+    updateMoneyDisplay(playerBalance);
+    updateRollButtonState(); // Update roll button state based on bet amount
+}
+
+void MainWindow::on_rollButton_clicked()
+{
+    double betAmount = ui->doubleSpinBox2->value();
+    if (betAmount <= 0.0) {
+        qDebug() << "Invalid bet amount";
+        return;
+    }
+    
+    if (!startDiceGame(betAmount)) {
+        qDebug() << "Failed to start dice game";
+        return;
+    }
+    
+    qDebug() << "Starting dice game with bet:" << betAmount;
+}
+
+bool MainWindow::startDiceGame(double amount) {
+    long amountLong = std::floor(amount * 100);
+
+    if (amountLong <= 0 || amountLong > playerBalance) {
+        qDebug() << "Invalid bet amount:" << amountLong << "Balance:" << playerBalance;
+        return false;
+    }
+
+    // Store the bet amount for later use
+    currentDiceBet = amountLong;
+    
+    // Roll the dice
+    rollDices();
+    
+    // Update UI
+    ui->resultLabel->setText("Make your guess: Will casino roll MORE, SAME, or LESS than you?");
+    
+    // Enable guess buttons
+    ui->moreButton->setEnabled(true);
+    ui->sameButton->setEnabled(true);
+    ui->lessButton->setEnabled(true);
+    
+    // Disable bet button during the game
+    ui->rollButton->setEnabled(false);
+    
+    minigame2WaitingForGuess = true;
+    
+    return true;
+}
+
+void MainWindow::updateRollButtonState() {
+    // Only update if we're on minigame 2 and not waiting for a guess
+    if (ui->stackedWidget->currentIndex() == 2 && !minigame2WaitingForGuess) {
+        bool hasValidBet = ui->doubleSpinBox2->value() > 0.0;
+        ui->rollButton->setEnabled(hasValidBet);
+    }
+}
+
+void MainWindow::on_halfButton2_clicked()
+{
+    double currentBet = ui->doubleSpinBox2->value();
+    double halvedBet = std::round((currentBet / 2) * 100) / 100;
+    ui->doubleSpinBox2->setValue(halvedBet);
+}
+
+void MainWindow::on_doubleButton2_clicked()
+{
+    double currentBet = ui->doubleSpinBox2->value();
+    double doubledBet = currentBet * 2;
+    double maximumAllowedBet = static_cast<double>(playerBalance) / 100.;
+    ui->doubleSpinBox2->setValue(std::min(doubledBet, maximumAllowedBet));
 }

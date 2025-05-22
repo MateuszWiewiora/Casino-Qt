@@ -43,8 +43,20 @@ private slots:
     void animationFinished();
     void resetWinAnimation();
     void resetLoseAnimation();
+    void rollDices();
+    void resetMinigame2();
+    void on_halfButton2_clicked();
+    void on_doubleButton2_clicked();
 
     void on_workButton_clicked();
+
+    void on_moreButton_clicked();
+
+    void on_sameButton_clicked();
+
+    void on_lessButton_clicked();
+
+    void on_rollButton_clicked();
 
 private:
     void updateBetButtonState();
@@ -57,6 +69,9 @@ private:
     void toggleOptionSelection(ClickableLabel *selectedLabel);
     void showWinAnimation(ClickableLabel *winningLabel);
     void showLoseAnimation(ClickableLabel *losingLabel);
+    void checkAnswer(QString answer);
+    bool startDiceGame(double amount);
+    void updateRollButtonState();
 
     Ui::MainWindow *ui;
     LoginWindow *loginWindow;
@@ -67,5 +82,9 @@ private:
     ClickableLabel *losingLabel = nullptr;
     long playerBalance = 10000;
     bool ANIMATION_MODE = false;
+    int playerRoll = 0;  
+    int casinoRoll = 0;
+    long currentDiceBet = 0;
+    bool minigame2WaitingForGuess = false;
 };
 #endif // MAINWINDOW_H
