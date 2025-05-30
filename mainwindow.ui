@@ -130,7 +130,7 @@
            </font>
           </property>
           <property name="text">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;💰100$&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;$100&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -198,7 +198,7 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="homeWidget">
           <layout class="QGridLayout" name="gridLayout_2">
@@ -593,13 +593,6 @@
                <number>0</number>
               </property>
               <item>
-               <widget class="QLabel" name="label_multiplier2">
-                <property name="text">
-                 <string>Multiplier: x2.00</string>
-                </property>
-               </widget>
-              </item>
-              <item>
                <widget class="QLabel" name="label_betAmount2">
                 <property name="text">
                  <string>Bet Amount</string>
@@ -675,7 +668,7 @@
                  </font>
                 </property>
                 <property name="text">
-                 <string>Dice Guessing Game</string>
+                 <string>Dice Guessing Game (2d10)</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -718,7 +711,7 @@
                  </font>
                 </property>
                 <property name="text">
-                 <string>Will casino roll MORE, SAME, or LESS than you?</string>
+                 <string>Will casino roll LESS, SAME, or MORE than you?</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -730,9 +723,15 @@
               </item>
               <item>
                <widget class="QWidget" name="widget_guessButtons" native="true">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>50</height>
+                 </size>
+                </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_guessButtons">
                  <item>
-                  <widget class="QPushButton" name="moreButton">
+                  <widget class="QPushButton" name="lessButton">
                    <property name="minimumSize">
                     <size>
                      <width>100</width>
@@ -746,7 +745,7 @@
                     </font>
                    </property>
                    <property name="text">
-                    <string>📈 MORE</string>
+                    <string>📉 LESS</string>
                    </property>
                   </widget>
                  </item>
@@ -770,7 +769,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="lessButton">
+                  <widget class="QPushButton" name="moreButton">
                    <property name="minimumSize">
                     <size>
                      <width>100</width>
@@ -784,7 +783,115 @@
                     </font>
                    </property>
                    <property name="text">
-                    <string>📉 LESS</string>
+                    <string>📈 MORE</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="widget_13" native="true">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_8">
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLabel" name="lessMultiplierLabel">
+                   <property name="text">
+                    <string>Multiplier: x2.13</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignmentFlag::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="sameMultiplierLabel">
+                   <property name="text">
+                    <string>Multiplier: x9.6</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignmentFlag::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="moreMultiplierLabel">
+                   <property name="text">
+                    <string>Multiplier: x2.13</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignmentFlag::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="widget_14" native="true">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_9">
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLabel" name="lessChanceLabel">
+                   <property name="text">
+                    <string>45%</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignmentFlag::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="sameChanceLabel">
+                   <property name="text">
+                    <string>10%</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignmentFlag::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="moreChanceLabel">
+                   <property name="text">
+                    <string>45%</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignmentFlag::AlignCenter</set>
                    </property>
                   </widget>
                  </item>
@@ -849,7 +956,7 @@
      <x>0</x>
      <y>0</y>
      <width>1055</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

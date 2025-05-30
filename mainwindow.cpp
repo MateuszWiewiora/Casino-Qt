@@ -12,31 +12,57 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    srand(time(0));
-
+    initializeRandomSeed();
     updateMoneyDisplay(playerBalance);
 
-    // Replace the QLabels with our custom ClickableLabels
+    createAndSetupClickableLabels();
+    setupBetAmountConnections();
+    setupInitialGameImages();
+    disableBettingUntilSelection();
+    updateBetAmountLimits();
+}
+
+void MainWindow::initializeRandomSeed()
+{
+    srand(time(0));
+}
+
+void MainWindow::createAndSetupClickableLabels()
+{
     option1Label = new ClickableLabel(this);
     option2Label = new ClickableLabel(this);
 
-    // Copy properties from the original labels
     option1Label->setGeometry(ui->option1Label->geometry());
     option2Label->setGeometry(ui->option2Label->geometry());
 
-    // Connect the click signals
-    connect(option1Label, &ClickableLabel::clicked, this, &MainWindow::on_option1Label_clicked);
-    connect(option2Label, &ClickableLabel::clicked, this, &MainWindow::on_option2Label_clicked);
+    connectLabelSignals();
+    replaceLabelWidgets();
+}
+
+void MainWindow::connectLabelSignals()
+{
+    connect(option1Label, &ClickableLabel::clicked, this, [this]()
+            {
+        if (ANIMATION_MODE) return;
+        toggleOptionSelection(option1Label); });
+    connect(option2Label, &ClickableLabel::clicked, this, [this]()
+            {
+        if (ANIMATION_MODE) return;
+        toggleOptionSelection(option2Label); });
     connect(option1Label, &ClickableLabel::selectionChanged, this, &MainWindow::on_selectionChanged);
     connect(option2Label, &ClickableLabel::selectionChanged, this, &MainWindow::on_selectionChanged);
+}
 
-    // Connect bet amount changes
+void MainWindow::setupBetAmountConnections()
+{
     connect(ui->doubleSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-        this, &MainWindow::on_betAmountChanged);
+            this, &MainWindow::on_betAmountChanged);
     connect(ui->doubleSpinBox2, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-        this, &MainWindow::on_betAmountChanged);
+            this, &MainWindow::on_betAmountChanged);
+}
 
-    // Replace the original labels in the layout
+void MainWindow::replaceLabelWidgets()
+{
     QLayout *layout1 = ui->option1Label->parentWidget()->layout();
     QLayout *layout2 = ui->option2Label->parentWidget()->layout();
 
@@ -57,18 +83,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     delete ui->option1Label;
     delete ui->option2Label;
-
-    // Initially disable the bet button
-    ui->betButton->setEnabled(false);
-
-    // Set up bet amount limits
-    updateBetAmountLimits();
 }
 
-MainWindow::~MainWindow()
+void MainWindow::disableBettingUntilSelection()
 {
-    delete ui;
-    delete initTimer;
+    ui->betButton->setEnabled(false);
 }
 
 void MainWindow::on_homeButton_clicked()
@@ -130,11 +149,12 @@ void MainWindow::on_LoginButton_clicked()
 
 void MainWindow::on_betAmountChanged(double value)
 {
-    if (ui->stackedWidget->currentIndex() == 1) {
-        // Minigame 1
+    if (ui->stackedWidget->currentIndex() == 1)
+    {
         updateBetButtonState();
-    } else if (ui->stackedWidget->currentIndex() == 2) {
-        // Minigame 2  
+    }
+    else if (ui->stackedWidget->currentIndex() == 2)
+    {
         updateRollButtonState();
     }
 }
@@ -148,28 +168,53 @@ void MainWindow::updateBetButtonState()
 
 bool MainWindow::placeBet(double amount)
 {
-    long amountLong = std::floor(amount * 100);
+    long amountInCents = std::floor(amount * 100);
 
-    if (amountLong <= 0 || amountLong > playerBalance)
+    if (!isValidBetAmount(amountInCents))
     {
-        qDebug() << amountLong << playerBalance;
+        qDebug() << amountInCents << playerBalance;
         return false;
     }
 
-    if (rand() % 2)
+    processGameOutcome(amountInCents);
+    startResultAnimation();
+    return true;
+}
+
+bool MainWindow::isValidBetAmount(long amountInCents)
+{
+    return amountInCents > 0 && amountInCents <= playerBalance;
+}
+
+void MainWindow::processGameOutcome(long amountInCents)
+{
+    bool playerWins = rand() % 2;
+    if (playerWins)
     {
-        playerBalance += amountLong * 99 / 100;
-        showWinAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
+        handleWin(amountInCents);
     }
     else
     {
-        playerBalance -= amountLong;
-        showLoseAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
-        showWinAnimation(getSelectedOption() == 1 ? option2Label : option1Label);
+        handleLoss(amountInCents);
     }
-
     updateMoneyDisplay(playerBalance);
+}
 
+void MainWindow::handleWin(long amountInCents)
+{
+    playerBalance += amountInCents * 99 / 100;
+    showWinAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
+}
+
+void MainWindow::handleLoss(long amountInCents)
+{
+    playerBalance -= amountInCents;
+    showLoseAnimation(getSelectedOption() == 1 ? option1Label : option2Label);
+    showWinAnimation(getSelectedOption() == 1 ? option2Label : option1Label);
+}
+
+void MainWindow::startResultAnimation()
+{
     ANIMATION_MODE = true;
     ui->betButton->setEnabled(false);
 
@@ -177,7 +222,6 @@ bool MainWindow::placeBet(double amount)
     initTimer->setSingleShot(true);
     connect(initTimer, &QTimer::timeout, this, &MainWindow::animationFinished);
     initTimer->start(1000);
-    return true;
 }
 
 void MainWindow::animationFinished()
@@ -185,9 +229,12 @@ void MainWindow::animationFinished()
     ANIMATION_MODE = false;
     resetWinAnimation();
     resetLoseAnimation();
-
     deselectAll();
+    displayRandomGameOptions();
+}
 
+void MainWindow::displayRandomGameOptions()
+{
     QStringList availableImages = getAvailableImages();
     std::random_device randomDevice;
     std::mt19937 randomGenerator(randomDevice());
@@ -199,7 +246,7 @@ void MainWindow::animationFinished()
 void MainWindow::on_betButton_clicked()
 {
     int selectedOption = getSelectedOption();
-    if (selectedOption == 0)
+    if (!selectedOption)
         return;
 
     double betAmount = ui->doubleSpinBox->value();
@@ -226,34 +273,27 @@ QStringList MainWindow::getAvailableImages()
 
 void MainWindow::updateOptionDisplay(const QString &firstImagePath, const QString &secondImagePath)
 {
-    // TODO: make it scale properly somehow
+    displayFirstOption(firstImagePath);
+    displaySecondOption(secondImagePath);
+}
 
-    QPixmap firstImage(firstImagePath);
-    option1Label->setPixmap(firstImage);
-    ui->option1NameLabel->setText(formatImageName(firstImagePath));
+void MainWindow::displayFirstOption(const QString &imagePath)
+{
+    QPixmap image(imagePath);
+    option1Label->setPixmap(image);
+    ui->option1NameLabel->setText(formatImageName(imagePath));
+}
 
-    QPixmap secondImage(secondImagePath);
-    option2Label->setPixmap(secondImage);
-    ui->option2NameLabel->setText(formatImageName(secondImagePath));
+void MainWindow::displaySecondOption(const QString &imagePath)
+{
+    QPixmap image(imagePath);
+    option2Label->setPixmap(image);
+    ui->option2NameLabel->setText(formatImageName(imagePath));
 }
 
 QString MainWindow::formatImageName(const QString &imagePath)
 {
     return imagePath.split("/").last().split(".").first().replace("_", " ").toUpper();
-}
-
-void MainWindow::on_option1Label_clicked()
-{
-    if (ANIMATION_MODE)
-        return;
-    toggleOptionSelection(option1Label);
-}
-
-void MainWindow::on_option2Label_clicked()
-{
-    if (ANIMATION_MODE)
-        return;
-    toggleOptionSelection(option2Label);
 }
 
 void MainWindow::toggleOptionSelection(ClickableLabel *selectedLabel)
@@ -294,19 +334,19 @@ int MainWindow::getSelectedOption() const
 
 void MainWindow::updateBetAmountLimits()
 {
+    double maxBet = playerBalance / 100.;
     ui->doubleSpinBox->setMinimum(0.0);
-    ui->doubleSpinBox->setMaximum(playerBalance / 100.);
-    ui->doubleSpinBox2->setMinimum(0.0);  // Add this
-    ui->doubleSpinBox2->setMaximum(playerBalance / 100.);
+    ui->doubleSpinBox->setMaximum(maxBet);
+    ui->doubleSpinBox2->setMinimum(0.0);
+    ui->doubleSpinBox2->setMaximum(maxBet);
 }
 
 void MainWindow::on_doubleButton_clicked()
 {
     double currentBet = ui->doubleSpinBox->value();
     double doubledBet = currentBet * 2;
-    double maximumAllowedBet = static_cast<double>(playerBalance) / 100.;
-
-    ui->doubleSpinBox->setValue(std::min(doubledBet, maximumAllowedBet));
+    double maxBet = static_cast<double>(playerBalance) / 100.;
+    ui->doubleSpinBox->setValue(std::min(doubledBet, maxBet));
 }
 
 void MainWindow::on_halfButton_clicked()
@@ -315,6 +355,7 @@ void MainWindow::on_halfButton_clicked()
     double halvedBet = std::round((currentBet / 2) * 100) / 100;
     ui->doubleSpinBox->setValue(halvedBet);
 }
+
 void MainWindow::showWinAnimation(ClickableLabel *label)
 {
     winningLabel = label;
@@ -347,50 +388,185 @@ void MainWindow::resetLoseAnimation()
 
 void MainWindow::on_workButton_clicked()
 {
+    addWorkEarnings();
+}
+
+void MainWindow::addWorkEarnings()
+{
     playerBalance += 10;
     updateMoneyDisplay(playerBalance);
 }
 
-void MainWindow::rollDices() {  
-    playerRoll = QRandomGenerator::global()->bounded(1, 11) + QRandomGenerator::global()->bounded(1, 11);  
-    casinoRoll = QRandomGenerator::global()->bounded(1, 11) + QRandomGenerator::global()->bounded(1, 11);  
-    ui->playerRollLabel->setText("Your roll: " + QString::number(playerRoll));
-    qDebug() << "Player rolled:" << playerRoll << "Casino rolled:" << casinoRoll;
-}  
+void MainWindow::rollDices()
+{
+    playerRoll = generateDiceRoll();
+    casinoRoll = generateDiceRoll();
+    displayPlayerRoll();
+    logRollResults();
+}
 
-void MainWindow::checkAnswer(QString answer) {  
-    if (!minigame2WaitingForGuess) {
+int MainWindow::generateDiceRoll()
+{
+    return QRandomGenerator::global()->bounded(1, 11) + QRandomGenerator::global()->bounded(1, 11);
+}
+
+void MainWindow::displayPlayerRoll()
+{
+    ui->playerRollLabel->setText("Your roll: " + QString::number(playerRoll));
+}
+
+void MainWindow::logRollResults()
+{
+    qDebug() << "Player rolled:" << playerRoll << "Casino rolled:" << casinoRoll;
+}
+
+void MainWindow::on_rollButton_clicked()
+{
+    double betAmount = ui->doubleSpinBox2->value();
+    if (!isValidBetAmount(betAmount))
+    {
+        logInvalidBet();
         return;
     }
-    
-    // Disable buttons to prevent multiple clicks
+
+    if (!startDiceGame(betAmount))
+    {
+        logGameStartFailure();
+        return;
+    }
+
+    logGameStart(betAmount);
+}
+
+bool MainWindow::startDiceGame(double amount)
+{
+    long amountInCents = std::floor(amount * 100);
+    if (!isValidBetAmount(amountInCents))
+        return false;
+
+    initializeGameRound(amountInCents);
+    return true;
+}
+
+void MainWindow::initializeGameRound(long amountInCents)
+{
+    currentDiceBet = amountInCents;
+    rollDices();
+    promptUserForGuess();
+    enableGuessButtons();
+    disableRollButton();
+    minigame2WaitingForGuess = true;
+}
+
+void MainWindow::promptUserForGuess()
+{
+    ui->resultLabel->setText("Make your guess: Will casino roll LESS, SAME, or MORE than you?");
+}
+
+void MainWindow::enableGuessButtons()
+{
+    ui->moreButton->setEnabled(true);
+    ui->sameButton->setEnabled(true);
+    ui->lessButton->setEnabled(true);
+}
+
+void MainWindow::disableRollButton()
+{
+    ui->rollButton->setEnabled(false);
+}
+
+void MainWindow::updateRollButtonState()
+{
+    if (ui->stackedWidget->currentIndex() == 2 && !minigame2WaitingForGuess)
+    {
+        bool hasValidBet = ui->doubleSpinBox2->value() > 0.0;
+        ui->rollButton->setEnabled(hasValidBet);
+    }
+}
+
+void MainWindow::on_halfButton2_clicked()
+{
+    double currentBet = ui->doubleSpinBox2->value();
+    double halvedBet = std::round((currentBet / 2) * 100) / 100;
+    ui->doubleSpinBox2->setValue(halvedBet);
+}
+
+void MainWindow::on_doubleButton2_clicked()
+{
+    double currentBet = ui->doubleSpinBox2->value();
+    double doubledBet = currentBet * 2;
+    double maxBet = static_cast<double>(playerBalance) / 100.;
+    ui->doubleSpinBox2->setValue(std::min(doubledBet, maxBet));
+}
+
+void MainWindow::checkAnswer(QString answer)
+{
+    if (!minigame2WaitingForGuess)
+        return;
+
+    disableGuessButtons();
+    minigame2WaitingForGuess = false;
+
+    bool isCorrectGuess = validateGuess(answer);
+    QString resultMessage = buildResultMessage(isCorrectGuess);
+    updateGameState(isCorrectGuess);
+    displayResult(resultMessage);
+    scheduleGameReset();
+}
+
+void MainWindow::disableGuessButtons()
+{
     ui->moreButton->setEnabled(false);
     ui->sameButton->setEnabled(false);
     ui->lessButton->setEnabled(false);
-    
-    minigame2WaitingForGuess = false;
-    
-    bool correct = false;  
-    if (answer == "More" && casinoRoll > playerRoll) correct = true;  
-    if (answer == "Same" && casinoRoll == playerRoll) correct = true;  
-    if (answer == "Less" && casinoRoll < playerRoll) correct = true;  
-  
+}
+
+bool MainWindow::validateGuess(QString answer)
+{
+    if (answer == "More" && casinoRoll > playerRoll)
+        return true;
+    if (answer == "Same" && casinoRoll == playerRoll)
+        return true;
+    if (answer == "Less" && casinoRoll < playerRoll)
+        return true;
+    return false;
+}
+
+QString MainWindow::buildResultMessage(bool isCorrectGuess)
+{
     QString resultText = "Casino rolled: " + QString::number(casinoRoll) + ". ";
-    
-    if (correct) {  
-        // Win: get back bet + win the same amount (x2 multiplier)
-        playerBalance += currentDiceBet; // Double the bet amount
+
+    if (isCorrectGuess)
+    {
         resultText += "CORRECT! You won $" + QString::number(currentDiceBet / 100.0, 'f', 2) + "!";
-    } else {  
-        // Lose: lose the bet amount
-        playerBalance -= currentDiceBet;
+    }
+    else
+    {
         resultText += "WRONG! You lost $" + QString::number(currentDiceBet / 100.0, 'f', 2) + "!";
-    }  
-    
-    ui->resultLabel->setText(resultText);
+    }
+    return resultText;
+}
+
+void MainWindow::updateGameState(bool isCorrectGuess)
+{
+    if (isCorrectGuess)
+    {
+        playerBalance += currentDiceBet;
+    }
+    else
+    {
+        playerBalance -= currentDiceBet;
+    }
     updateMoneyDisplay(playerBalance);
-    
-    // Set up timer to reset the game after 3 seconds
+}
+
+void MainWindow::displayResult(const QString &resultMessage)
+{
+    ui->resultLabel->setText(resultMessage);
+}
+
+void MainWindow::scheduleGameReset()
+{
     QTimer::singleShot(3000, this, &MainWindow::resetMinigame2);
 }
 
@@ -409,95 +585,72 @@ void MainWindow::on_lessButton_clicked()
     checkAnswer("Less");
 }
 
-void MainWindow::resetMinigame2() {
-    // Reset the game state
+void MainWindow::resetMinigame2()
+{
+    resetGameState();
+    resetUIElements();
+    updateGameControls();
+}
+
+void MainWindow::resetGameState()
+{
     playerRoll = 0;
     casinoRoll = 0;
     currentDiceBet = 0;
     minigame2WaitingForGuess = false;
-    
-    // Reset UI elements
+}
+
+void MainWindow::resetUIElements()
+{
     ui->playerRollLabel->setText("Click ROLL to play!");
     ui->resultLabel->setText("Place your bet and roll the dice!");
-    
-    // Disable guess buttons initially
+}
+
+void MainWindow::updateGameControls()
+{
     ui->moreButton->setEnabled(false);
     ui->sameButton->setEnabled(false);
     ui->lessButton->setEnabled(false);
-    
-    // Enable roll button
     ui->rollButton->setEnabled(true);
-    
-    // Update money display and bet limits
     updateMoneyDisplay(playerBalance);
-    updateRollButtonState(); // Update roll button state based on bet amount
+    updateRollButtonState();
 }
 
-void MainWindow::on_rollButton_clicked()
+void MainWindow::logInvalidBet()
 {
-    double betAmount = ui->doubleSpinBox2->value();
-    if (betAmount <= 0.0) {
-        qDebug() << "Invalid bet amount";
-        return;
-    }
-    
-    if (!startDiceGame(betAmount)) {
-        qDebug() << "Failed to start dice game";
-        return;
-    }
-    
+    qDebug() << "Invalid bet amount";
+}
+
+void MainWindow::logGameStartFailure()
+{
+    qDebug() << "Failed to start dice game";
+}
+
+void MainWindow::logGameStart(double betAmount)
+{
     qDebug() << "Starting dice game with bet:" << betAmount;
 }
 
-bool MainWindow::startDiceGame(double amount) {
-    long amountLong = std::floor(amount * 100);
-
-    if (amountLong <= 0 || amountLong > playerBalance) {
-        qDebug() << "Invalid bet amount:" << amountLong << "Balance:" << playerBalance;
-        return false;
-    }
-
-    // Store the bet amount for later use
-    currentDiceBet = amountLong;
-    
-    // Roll the dice
-    rollDices();
-    
-    // Update UI
-    ui->resultLabel->setText("Make your guess: Will casino roll MORE, SAME, or LESS than you?");
-    
-    // Enable guess buttons
-    ui->moreButton->setEnabled(true);
-    ui->sameButton->setEnabled(true);
-    ui->lessButton->setEnabled(true);
-    
-    // Disable bet button during the game
-    ui->rollButton->setEnabled(false);
-    
-    minigame2WaitingForGuess = true;
-    
-    return true;
+MainWindow::~MainWindow()
+{
+    delete ui;
+    delete initTimer;
+    delete loginWindow;
+    delete option1Label;
+    delete option2Label;
 }
 
-void MainWindow::updateRollButtonState() {
-    // Only update if we're on minigame 2 and not waiting for a guess
-    if (ui->stackedWidget->currentIndex() == 2 && !minigame2WaitingForGuess) {
-        bool hasValidBet = ui->doubleSpinBox2->value() > 0.0;
-        ui->rollButton->setEnabled(hasValidBet);
+void MainWindow::setupInitialGameImages()
+{
+    QStringList availableImages = getAvailableImages();
+    if (availableImages.size() >= 2)
+    {
+        updateOptionDisplay(availableImages[0], availableImages[1]);
     }
 }
 
-void MainWindow::on_halfButton2_clicked()
+bool MainWindow::isValidBetAmount(double amount)
 {
-    double currentBet = ui->doubleSpinBox2->value();
-    double halvedBet = std::round((currentBet / 2) * 100) / 100;
-    ui->doubleSpinBox2->setValue(halvedBet);
-}
-
-void MainWindow::on_doubleButton2_clicked()
-{
-    double currentBet = ui->doubleSpinBox2->value();
-    double doubledBet = currentBet * 2;
-    double maximumAllowedBet = static_cast<double>(playerBalance) / 100.;
-    ui->doubleSpinBox2->setValue(std::min(doubledBet, maximumAllowedBet));
+    long amountInCents = std::floor(amount * 100);
+    return amountInCents > 0 && amountInCents <= playerBalance;
 }
