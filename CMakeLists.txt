@@ -17,6 +17,8 @@ set(PROJECT_SOURCES
         mainwindow.h mainwindow.cpp mainwindow.ui
         loginwindow.h loginwindow.cpp loginwindow.ui
         clickablelabel.h clickablelabel.cpp
+        minigame1.h minigame1.cpp
+        minigame2.h minigame2.cpp
         assets/resources.qrc
 )
 
