@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/assets">
+        <file>tung_tung_tung_sahur.png</file>
+        <file>bombardiro_crocodillo.png</file>
+        <file>ballerina_cappucina.png</file>
+        <file>capuccino_assassino.png</file>
+        <file>chimpanzini_bananini.png</file>
+        <file>lirili_ralila.png</file>
+        <file>tralalero_tralala.png</file>
+        <file>trippi_troppi.png</file>
+    </qresource>
+</RCC>
