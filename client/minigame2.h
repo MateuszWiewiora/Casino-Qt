@@ -36,12 +36,12 @@ private:
     long currentDiceBet = 0;
     bool minigame2WaitingForGuess = false;
     int CHANCES[20] = {};
-    float lessChance = 0.33;
-    float sameChance = 0.33;
-    float moreChance = 0.33;
-    float lessMultiplier = 1;
-    float sameMultiplier = 1;
-    float moreMultiplier = 1;
+    float lessChance = 0.33f;
+    float sameChance = 0.33f;
+    float moreChance = 0.33f;
+    float lessMultiplier = 1.0f;
+    float sameMultiplier = 1.0f;
+    float moreMultiplier = 1.0f;
 
     void rollDices();
     int generateDiceRoll();

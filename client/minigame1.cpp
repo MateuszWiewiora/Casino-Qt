@@ -2,6 +2,7 @@
 #include "mainwindow.h"
 #include <QDirIterator>
 #include <random>
+#include "../main.h"
 
 Minigame1::Minigame1(QWidget *parent, long &playerBalanceRef)
     : QObject(parent), playerBalance(playerBalanceRef)
@@ -42,14 +43,14 @@ void Minigame1::replaceLabelWidgets(Ui::MainWindow *ui)
     if (layout1)
     {
         layout1->replaceWidget(ui->option1Label, option1Label);
-        QPixmap pixmap(":/assets/bombardiro_crocodillo.png");
+        QPixmap pixmap = getPixmap(":/assets/bombardiro_crocodillo.png");
         option1Label->setAlignment(Qt::AlignCenter);
         option1Label->setPixmap(pixmap);
     }
     if (layout2)
     {
         layout2->replaceWidget(ui->option2Label, option2Label);
-        QPixmap pixmap(":/assets/tung_tung_tung_sahur.png");
+        QPixmap pixmap = getPixmap(":/assets/tung_tung_tung_sahur.png");
         option2Label->setAlignment(Qt::AlignCenter);
         option2Label->setPixmap(pixmap);
     }
@@ -138,7 +139,7 @@ void Minigame1::displayRandomGameOptions()
 QStringList Minigame1::getAvailableImages()
 {
     QStringList images;
-    QDirIterator imageIterator(":/assets", QDirIterator::Subdirectories);
+    QDirIterator imageIterator = getImageIterator();
     while (imageIterator.hasNext())
     {
         QString imagePath = imageIterator.next();
