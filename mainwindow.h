@@ -52,7 +52,7 @@ private slots:
     void on_selectionChanged(bool selected);
     void rollDices();
     void resetMinigame2();
-    void on_playButton3_clicked();
+    // void on_playButton3_clicked();
     void on_halfButton3_clicked();
     void on_doubleButton3_clicked();
 

@@ -34,7 +34,7 @@ void MainWindow::setupMinigames()
 {
     minigame1 = new Minigame1(this, playerBalance);
     minigame2 = new Minigame2(this, playerBalance);
-    minigame3 = new Minigame3(this, playerBalance);
+    minigame3 = new Minigame3(this, ui, playerBalance);
 
     setupMinigame1Connections();
     setupMinigame2Connections();
@@ -42,6 +42,11 @@ void MainWindow::setupMinigames()
 
     minigame1->createAndSetupClickableLabels(this, ui);
     minigame1->setupInitialGameImages();
+
+    if (minigame3)
+    {
+        minigame3->resetGame();
+    }
 }
 
 void MainWindow::setupMinigame1Connections()
@@ -72,6 +77,8 @@ void MainWindow::setupMinigame3Connections()
 {
     connect(minigame3, &Minigame3::moneyUpdated, this, &MainWindow::updateMoneyDisplay);
     connect(minigame3, &Minigame3::gameStatusUpdated, ui->gameStatusLabel3, &QLabel::setText);
+    connect(minigame3, &Minigame3::playButtonEnabled, ui->playButton3, &QPushButton::setEnabled);
+    connect(ui->playButton3, &QPushButton::clicked, minigame3, &Minigame3::confirmBetAndStartGame);
 }
 
 void MainWindow::setupBetAmountConnections()
@@ -300,15 +307,13 @@ void MainWindow::updatePlayButtonState()
     ui->playButton3->setEnabled(hasValidBet);
 }
 
-void MainWindow::on_playButton3_clicked()
-{
-    double betAmount = ui->doubleSpinBox3->value();
-    if (!minigame3->placeBet(betAmount))
-    {
-        qDebug() << "Invalid bet amount";
-        return;
-    }
-}
+// void MainWindow::on_playButton3_clicked()
+// {
+//     if (minigame3)
+//     {
+//         minigame3->confirmBetAndStartGame();
+//     }
+// }
 
 void MainWindow::on_halfButton3_clicked()
 {
