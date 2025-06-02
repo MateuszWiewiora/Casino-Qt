@@ -198,7 +198,7 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>3</number>
          </property>
          <widget class="QWidget" name="homeWidget">
           <layout class="QGridLayout" name="gridLayout_2">
@@ -943,6 +943,44 @@
            </property>
           </widget>
          </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="chatWidget" native="true">
+      <property name="visible">
+       <bool>false</bool>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>200</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>200</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QTextBrowser" name="chatBrowser"/>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="chatInput">
+         <property name="placeholderText">
+          <string>Type a message...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="sendButton">
+         <property name="text">
+          <string>Send</string>
+         </property>
         </widget>
        </item>
       </layout>

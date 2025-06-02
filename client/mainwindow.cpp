@@ -9,6 +9,10 @@
 #include <QRandomGenerator>
 #include "minigame1.h"
 #include "minigame2.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QDateTime>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -23,6 +27,227 @@ MainWindow::MainWindow(QWidget *parent)
     updateBetAmountLimits();
 
     minigame2->initializeChances();
+
+    connect(&socket, &QTcpSocket::connected, this, &MainWindow::connected);
+    connect(&socket, &QTcpSocket::disconnected, this, &MainWindow::disconnected);
+    connect(&socket, &QTcpSocket::errorOccurred, this, &MainWindow::handleSocketError);
+    connect(&socket, &QTcpSocket::readyRead, this, &MainWindow::readSocket);
+
+    connect(&pingTimer, &QTimer::timeout, this, &MainWindow::sendPing);
+    connect(&reconnectTimer, &QTimer::timeout, this, &MainWindow::reconnectToServer);
+
+    connect(ui->sendButton, &QPushButton::clicked, this, &MainWindow::on_sendButton_clicked);
+    connect(ui->chatInput, &QLineEdit::returnPressed, this, &MainWindow::on_chatInput_returnPressed);
+
+    pingTimer.setInterval(30000);
+    reconnectTimer.setInterval(RECONNECT_INTERVAL);
+
+    connectToServer();
+}
+
+void MainWindow::connectToServer()
+{
+    if (!isConnected)
+    {
+        updateConnectionStatus(false);
+        socket.connectToHost(serverAddress, serverPort);
+    }
+}
+
+void MainWindow::connected()
+{
+    isConnected = true;
+    updateConnectionStatus(true);
+    reconnectAttempts = 0;
+    reconnectTimer.stop();
+    pingTimer.start();
+
+    if (!username.isEmpty())
+    {
+        login(username);
+    }
+}
+
+void MainWindow::disconnected()
+{
+    isConnected = false;
+    updateConnectionStatus(false);
+    pingTimer.stop();
+
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS)
+    {
+        reconnectTimer.start();
+    }
+}
+
+void MainWindow::handleSocketError(QAbstractSocket::SocketError error)
+{
+    QString errorMessage = "Connection error: " + socket.errorString();
+    ui->statusbar->showMessage(errorMessage);
+    qDebug() << errorMessage;
+}
+
+void MainWindow::readSocket()
+{
+    QByteArray data = socket.readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    if (doc.isObject())
+    {
+        QJsonObject obj = doc.object();
+        QString type = obj["type"].toString();
+
+        if (type == "message")
+        {
+            QString message = obj["message"].toString();
+            ui->chatBrowser->append(message);
+        }
+        else if (type == "welcome")
+        {
+            handleWelcome(obj["message"].toString());
+        }
+        else if (type == "ping")
+        {
+            handlePing();
+        }
+        else if (type == "pong")
+        {
+            handlePong(obj["timestamp"].toVariant().toLongLong());
+        }
+        else if (type == "status")
+        {
+            handleServerStatus(obj["connectedClients"].toInt());
+        }
+        else if (type == "chat")
+        {
+            processServerMessage(obj);
+        }
+    }
+}
+
+void MainWindow::processServerMessage(const QJsonObject &message)
+{
+    QString type = message["type"].toString();
+
+    if (type == "chat")
+    {
+        QString sender = message["sender"].toString();
+        QString content = message["content"].toString();
+        displayChatMessage(sender, content);
+    }
+    else if (type == "welcome")
+    {
+        QString content = message["content"].toString();
+        handleWelcome(content);
+    }
+    else if (type == "pong")
+    {
+        // Handle pong response if needed
+    }
+}
+
+void MainWindow::displayChatMessage(const QString &sender, const QString &message)
+{
+    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
+    QString formattedMessage = QString("[%1] %2: %3").arg(timestamp, sender, message);
+    ui->chatBrowser->append(formattedMessage);
+}
+
+void MainWindow::sendMessage(const QString &message)
+{
+    if (socket.state() != QAbstractSocket::ConnectedState)
+    {
+        QMessageBox::warning(this, "Connection Error", "Not connected to server");
+        return;
+    }
+
+    QJsonObject jsonMessage;
+    jsonMessage["type"] = "chat";
+    jsonMessage["sender"] = username;
+    jsonMessage["content"] = message;
+    jsonMessage["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    QJsonDocument doc(jsonMessage);
+    socket.write(doc.toJson());
+}
+
+void MainWindow::login(const QString &username)
+{
+    if (!isConnected)
+        return;
+
+    this->username = username;
+    QJsonObject obj;
+    obj["type"] = "login";
+    obj["message"] = username;
+    QJsonDocument doc(obj);
+    socket.write(doc.toJson());
+}
+
+void MainWindow::handlePing()
+{
+    QJsonObject pong;
+    pong["type"] = "pong";
+    pong["timestamp"] = QDateTime::currentMSecsSinceEpoch();
+    QJsonDocument doc(pong);
+    socket.write(doc.toJson());
+}
+
+void MainWindow::handlePong(qint64 timestamp)
+{
+    qint64 latency = QDateTime::currentMSecsSinceEpoch() - timestamp;
+    ui->statusbar->showMessage(QString("Server latency: %1 ms").arg(latency));
+}
+
+void MainWindow::handleServerStatus(int connectedClients)
+{
+    ui->statusbar->showMessage(QString("Connected clients: %1").arg(connectedClients));
+}
+
+void MainWindow::handleWelcome(const QString &message)
+{
+    ui->chatBrowser->append("<span style='color: green;'>" + message + "</span>");
+}
+
+void MainWindow::reconnectToServer()
+{
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS)
+    {
+        reconnectAttempts++;
+        ui->statusbar->showMessage(QString("Reconnecting... Attempt %1/%2")
+                                       .arg(reconnectAttempts)
+                                       .arg(MAX_RECONNECT_ATTEMPTS));
+        connectToServer();
+    }
+    else
+    {
+        ui->statusbar->showMessage("Failed to connect to server after multiple attempts");
+        reconnectTimer.stop();
+    }
+}
+
+void MainWindow::updateConnectionStatus(bool connected)
+{
+    if (connected)
+    {
+        ui->statusbar->showMessage("Connected to server");
+    }
+    else
+    {
+        ui->statusbar->showMessage("Disconnected from server");
+    }
+}
+
+void MainWindow::sendPing()
+{
+    if (isConnected)
+    {
+        QJsonObject ping;
+        ping["type"] = "ping";
+        ping["timestamp"] = QDateTime::currentMSecsSinceEpoch();
+        QJsonDocument doc(ping);
+        socket.write(doc.toJson());
+    }
 }
 
 void MainWindow::initializeRandomSeed()
@@ -276,6 +501,21 @@ void MainWindow::resetMinigame2()
     // ui->resultLabel->setText("Place your bet and roll the dice!");
     // ui->resultLabel->setStyleSheet("");
     updateRollButtonState();
+}
+
+void MainWindow::on_sendButton_clicked()
+{
+    QString message = ui->chatInput->text().trimmed();
+    if (!message.isEmpty())
+    {
+        sendMessage(message);
+        ui->chatInput->clear();
+    }
+}
+
+void MainWindow::on_chatInput_returnPressed()
+{
+    on_sendButton_clicked();
 }
 
 MainWindow::~MainWindow()

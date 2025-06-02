@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/assets">
+    <qresource prefix="/client/assets">
         <file>tung_tung_tung_sahur.png</file>
         <file>bombardiro_crocodillo.png</file>
         <file>ballerina_cappucina.png</file>
