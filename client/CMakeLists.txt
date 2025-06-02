@@ -18,7 +18,6 @@ set(PROJECT_SOURCES
     clickablelabel.h clickablelabel.cpp
     minigame1.h minigame1.cpp
     minigame2.h minigame2.cpp
-    ${CMAKE_SOURCE_DIR}/assets/resources.qrc
 )
 
 add_library(casino-client STATIC

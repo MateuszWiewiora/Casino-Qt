@@ -3,6 +3,8 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QDirIterator>
+#include <QDir>
 #include "client/mainwindow.h"
 #include "server/serverwindow.h"
 
@@ -38,6 +40,16 @@ public:
         client->show();
     }
 };
+
+QPixmap getPixmap(const QString &path)
+{
+    return QPixmap(path);
+}
+
+QDirIterator getImageIterator()
+{
+    return QDirIterator(":/assets", QDirIterator::Subdirectories);
+}
 
 int main(int argc, char *argv[])
 {

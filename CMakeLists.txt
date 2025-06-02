@@ -16,7 +16,8 @@ add_subdirectory(client)
 add_subdirectory(server)
 
 set(PROJECT_SOURCES
-    main.cpp
+    main.h main.cpp
+    assets/resources.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
