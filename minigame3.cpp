@@ -12,11 +12,10 @@ Minigame3::Minigame3(QWidget *parent, Ui::MainWindow *uiRef, long &playerBalance
     presentContentsInternal.resize(TOTAL_PRESENTS);
     revealedPresentsMask.resize(TOTAL_PRESENTS);
 
-    // TODO: zmienic mnozniki
-    bombMultipliers[1] = 1.98;
-    bombMultipliers[3] = 1.98;
-    bombMultipliers[5] = 1.98;
-    bombMultipliers[10] = 1.98;
+    bombMultipliers[1] = 1.249 * (1 - MainWindow::CASINO_EDGE);
+    bombMultipliers[3] = 2.017 * (1 - MainWindow::CASINO_EDGE);
+    bombMultipliers[5] = 3.426 * (1 - MainWindow::CASINO_EDGE);
+    bombMultipliers[10] = 17.69 * (1 - MainWindow::CASINO_EDGE);
 
     connectPresentSignals();
     connectBombSelectionSignals();

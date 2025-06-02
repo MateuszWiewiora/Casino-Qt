@@ -1147,6 +1147,16 @@
                </widget>
               </item>
               <item>
+               <widget class="QLabel" name="multiplier3Label">
+                <property name="text">
+                 <string>Multiplier:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignmentFlag::AlignCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
                <spacer name="verticalSpacer_2">
                 <property name="orientation">
                  <enum>Qt::Orientation::Vertical</enum>
