@@ -25,7 +25,12 @@ Minigame3::Minigame3(QWidget *parent, Ui::MainWindow *uiRef, long &playerBalance
     connect(revealAllEndTimer, &QTimer::timeout, this, &Minigame3::finalizeRound);
 
     setBombCount(3);
+
+    ui->multiplier3Label->setText("Multiplier: x" + QString::number(bombMultipliers[3], 'f', 2));
     initializeNewRound();
+
+    clickCount = 0;
+    isGameBlocked = false;
 }
 
 Minigame3::~Minigame3() {}
@@ -72,13 +77,21 @@ void Minigame3::connectPresentSignals()
 void Minigame3::connectBombSelectionSignals()
 {
     connect(ui->bombButton1, &QPushButton::clicked, this, [this]()
-            { setBombCount(1); });
+            { 
+                setBombCount(1);
+                ui->multiplier3Label->setText("Multiplier: x" + QString::number(bombMultipliers[1], 'f', 2)); });
     connect(ui->bombButton3, &QPushButton::clicked, this, [this]()
-            { setBombCount(3); });
+            { 
+                setBombCount(3);
+                ui->multiplier3Label->setText("Multiplier: x" + QString::number(bombMultipliers[3], 'f', 2)); });
     connect(ui->bombButton5, &QPushButton::clicked, this, [this]()
-            { setBombCount(5); });
+            { 
+                setBombCount(5);
+                ui->multiplier3Label->setText("Multiplier: x" + QString::number(bombMultipliers[5], 'f', 2)); });
     connect(ui->bombButton10, &QPushButton::clicked, this, [this]()
-            { setBombCount(10); });
+            { 
+                setBombCount(10);
+                ui->multiplier3Label->setText("Multiplier: x" + QString::number(bombMultipliers[10], 'f', 2)); });
 }
 
 void Minigame3::setBombCount(int bombs)
@@ -158,6 +171,8 @@ void Minigame3::initializeNewRound()
     starsFoundCount = 0;
     currentBetAmountInCents = 0;
     selectedPresentForBet = nullptr;
+    clickCount = 0;
+    isGameBlocked = false;
 
     for (ClickableLabel *label : presentLabels)
     {
@@ -171,12 +186,15 @@ void Minigame3::initializeNewRound()
         emit gameStatusUpdated(QString("Warning: Not enough stars (%1) to win! Need %2. Choose fewer bombs.")
                                    .arg(starsAvailable)
                                    .arg(TARGET_STARS_TO_WIN));
-        emit playButtonEnabled(false);
+
+        long currentBetAmount = static_cast<long>(std::floor(ui->doubleSpinBox3->value() * 100));
+        emit playButtonEnabled(isValidBetAmount(currentBetAmount));
     }
     else
     {
         emit gameStatusUpdated(QString("Select a present. Find %1 Stars. Bombs: %2").arg(TARGET_STARS_TO_WIN).arg(currentNumberOfBombs));
-        emit playButtonEnabled(false);
+        long currentBetAmount = static_cast<long>(std::floor(ui->doubleSpinBox3->value() * 100));
+        emit playButtonEnabled(isValidBetAmount(currentBetAmount));
     }
 }
 
@@ -201,9 +219,9 @@ void Minigame3::shuffleAndAssignContents()
 
 void Minigame3::handlePresentClicked(ClickableLabel *clickedLabel)
 {
-    if (revealAllEndTimer && revealAllEndTimer->isActive())
+    if (revealAllEndTimer && revealAllEndTimer->isActive() || isGameBlocked || !isBetActive)
     {
-        qDebug() << "Minigame3: Interaction blocked, round ending.";
+        qDebug() << "Minigame3: Interaction blocked, round ending or game blocked.";
         return;
     }
 
@@ -211,31 +229,24 @@ void Minigame3::handlePresentClicked(ClickableLabel *clickedLabel)
     if (clickedIndex == -1)
         return;
 
-    if (!isBetActive)
+    if (revealedPresentsMask[clickedIndex])
     {
-        if (selectedPresentForBet)
-        {
-            updatePresentLabelAppearance(selectedPresentForBet, PresentContent::HIDDEN, false, false, false, false);
-        }
-        selectedPresentForBet = clickedLabel;
-        updatePresentLabelAppearance(selectedPresentForBet, PresentContent::HIDDEN, true, false, false, false);
-        int starsAvailable = TOTAL_PRESENTS - currentNumberOfBombs;
-        emit playButtonEnabled(starsAvailable >= TARGET_STARS_TO_WIN);
+        qDebug() << "Minigame3: Present already revealed.";
+        return;
     }
-    else
+    clickCount++;
+    revealAndUpdate(clickedLabel);
+
+    if (clickCount >= 5)
     {
-        if (revealedPresentsMask[clickedIndex])
-        {
-            qDebug() << "Minigame3: Present already revealed.";
-            return;
-        }
-        revealAndUpdate(clickedLabel);
+        isGameBlocked = true;
+        triggerDelayedRevealAll(false);
     }
 }
 
 void Minigame3::confirmBetAndStartGame()
 {
-    if (isBetActive || !selectedPresentForBet)
+    if (isBetActive)
         return;
 
     long amountInCents = static_cast<long>(std::floor(ui->doubleSpinBox3->value() * 100));
@@ -261,9 +272,11 @@ void Minigame3::confirmBetAndStartGame()
     ui->bombButton3->setEnabled(false);
     ui->bombButton5->setEnabled(false);
     ui->bombButton10->setEnabled(false);
+    ui->doubleSpinBox3->setEnabled(false);
+    ui->halfButton3->setEnabled(false);
+    ui->doubleButton3->setEnabled(false);
 
     emit gameStatusUpdated(QString("Game started! Find %1 stars. Good luck!").arg(TARGET_STARS_TO_WIN));
-    revealAndUpdate(selectedPresentForBet);
 }
 
 void Minigame3::revealAndUpdate(ClickableLabel *revealedLabel)
@@ -281,6 +294,7 @@ void Minigame3::revealAndUpdate(ClickableLabel *revealedLabel)
     if (content == PresentContent::BOMB)
     {
         updatePresentLabelAppearance(revealedLabel, content, false, true, false, true);
+        isGameBlocked = true;
         playerLoses();
         triggerDelayedRevealAll(false);
     }
@@ -313,7 +327,7 @@ void Minigame3::playerLoses()
 void Minigame3::playerWins()
 {
     double multiplier = bombMultipliers.value(currentNumberOfBombs, 1.0);
-    long winAmount = static_cast<long>(currentBetAmountInCents * multiplier * (1.0 - MainWindow::CASINO_EDGE));
+    long winAmount = static_cast<long>(currentBetAmountInCents * (multiplier - 1) * (1.0 - MainWindow::CASINO_EDGE));
     playerBalance += winAmount;
     emit moneyUpdated(playerBalance);
     emit gameStatusUpdated(QString("CONGRATULATIONS! You found all %1 stars and won %2!")
@@ -345,6 +359,13 @@ void Minigame3::finalizeRound()
     ui->bombButton3->setEnabled(true);
     ui->bombButton5->setEnabled(true);
     ui->bombButton10->setEnabled(true);
+    ui->doubleSpinBox3->setEnabled(true);
+    ui->halfButton3->setEnabled(true);
+    ui->doubleButton3->setEnabled(true);
+
+    long currentBetAmount = static_cast<long>(std::floor(ui->doubleSpinBox3->value() * 100));
+    emit playButtonEnabled(isValidBetAmount(currentBetAmount));
+
     initializeNewRound();
 }
 

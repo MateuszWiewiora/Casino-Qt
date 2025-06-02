@@ -41,6 +41,8 @@ private:
     long currentBetAmountInCents = 0;
     int starsFoundCount = 0;
     int currentNumberOfBombs = 3;
+    int clickCount = 0;
+    bool isGameBlocked = false;
 
     QVector<bool> revealedPresentsMask;
 
