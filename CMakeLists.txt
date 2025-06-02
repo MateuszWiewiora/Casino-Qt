@@ -19,6 +19,7 @@ set(PROJECT_SOURCES
         clickablelabel.h clickablelabel.cpp
         minigame1.h minigame1.cpp
         minigame2.h minigame2.cpp
+        minigame3.h minigame3.cpp
         assets/resources.qrc
 )
 

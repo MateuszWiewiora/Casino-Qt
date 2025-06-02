@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "loginwindow.h"
 #include "clickablelabel.h"
+#include "minigame3.h"
 #include <QTimer>
 
 QT_BEGIN_NAMESPACE
@@ -15,6 +16,7 @@ QT_END_NAMESPACE
 
 class Minigame1;
 class Minigame2;
+class Minigame3;
 
 class MainWindow : public QMainWindow
 {
@@ -50,6 +52,9 @@ private slots:
     void on_selectionChanged(bool selected);
     void rollDices();
     void resetMinigame2();
+    void on_playButton3_clicked();
+    void on_halfButton3_clicked();
+    void on_doubleButton3_clicked();
 
 private:
     void initializeRandomSeed();
@@ -64,11 +69,14 @@ private:
     void addWorkEarnings();
     void setGuessButtonsEnabled(bool enabled);
     void updateRollButtonState();
+    void setupMinigame3Connections();
+    void updatePlayButtonState();
 
     Ui::MainWindow *ui;
     LoginWindow *loginWindow = nullptr;
     Minigame1 *minigame1 = nullptr;
     Minigame2 *minigame2 = nullptr;
+    Minigame3 *minigame3;
     long playerBalance = 10000;
     bool ANIMATION_MODE = false;
     int playerRoll = 0;
