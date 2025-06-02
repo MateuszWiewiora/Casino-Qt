@@ -13,8 +13,9 @@
 #include <QLineEdit>
 #include <QTextBrowser>
 #include <QPushButton>
-#include "loginwindow.h"
+#include <QCryptographicHash>
 #include "clickablelabel.h"
+#include "loginwindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -36,6 +37,8 @@ public:
     ~MainWindow();
 
     int getSelectedOption() const;
+    void login(const QString &username, const QString &password);
+    void registerUser(const QString &username, const QString &password);
 
 private slots:
     void on_homeButton_clicked();
@@ -60,22 +63,13 @@ private slots:
     void on_selectionChanged(bool selected);
     void rollDices();
     void resetMinigame2();
-    void on_sendButton_clicked();
-    void on_chatInput_returnPressed();
 
     void connectToServer();
     void connected();
     void disconnected();
     void handleSocketError(QAbstractSocket::SocketError error);
     void readSocket();
-    void sendMessage(const QString &message);
-    void login(const QString &username);
-    void handlePing();
-    void handlePong(qint64 timestamp);
-    void handleServerStatus(int connectedClients);
-    void handleWelcome(const QString &message);
-    void reconnectToServer();
-    void sendPing();
+    void processServerMessage(const QJsonObject &message);
 
 private:
     void initializeRandomSeed();
@@ -91,8 +85,6 @@ private:
     void setGuessButtonsEnabled(bool enabled);
     void updateRollButtonState();
     void updateConnectionStatus(bool connected);
-    void processServerMessage(const QJsonObject &message);
-    void displayChatMessage(const QString &sender, const QString &message);
 
     Ui::MainWindow *ui;
     LoginWindow *loginWindow = nullptr;

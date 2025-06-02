@@ -58,6 +58,6 @@ int main(int argc, char *argv[])
     LauncherWindow launcher;
     launcher.launchServer();
     launcher.launchClient();
-    launcher.show();
+    // launcher.show();
     return app.exec();
 }

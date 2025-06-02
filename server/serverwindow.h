@@ -5,8 +5,7 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QMap>
-#include <QTimer>
-#include <QProcess>
+#include <QScrollBar>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -26,25 +25,21 @@ public:
 private slots:
     void newClientConnection();
     void socketDisconnected();
-    void readSocket();
     void handleSocketError(QAbstractSocket::SocketError error);
-    void updateClientList();
-    void broadcastServerStatus();
+    void readSocket();
 
 private:
+    void handleLogin(const QString &username, const QString &password);
+    void handleRegister(const QString &username, const QString &password);
+    void sendToClient(const QJsonObject &message);
+    void logMessage(const QString &message, bool isError = false);
+
     Ui::ServerWindow *ui;
     QTcpServer tcpServer;
-    QMap<QTcpSocket *, QString> clients;
-    QMap<QTcpSocket *, QTimer *> clientPingTimers;
-    QList<QProcess *> clientProcesses;
-    quint16 port = 45000;
-    QTimer statusUpdateTimer;
-    int connectedClients = 0;
-
-    void sendToAllClients(const QString &message, QTcpSocket *exclude = nullptr);
-    void sendToClient(QTcpSocket *client, const QJsonObject &message);
-    void setupPingTimer(QTcpSocket *client);
-    void removeClient(QTcpSocket *client);
-    void logMessage(const QString &message, bool isError = false);
+    QTcpSocket *currentClient = nullptr;
+    QString currentUsername;
+    QMap<QString, QString> registeredUsers;
+    const quint16 port = 45000;
 };
-#endif // SERVERWINDOW_H
+
+#endif

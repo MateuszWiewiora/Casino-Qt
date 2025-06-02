@@ -1,14 +1,9 @@
 #include "serverwindow.h"
 #include "./ui_serverwindow.h"
-#include "../client/mainwindow.h"
 #include <QMessageBox>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QDateTime>
-#include <QProcess>
-#include <QDir>
-#include <QScrollBar>
-#include <QCoreApplication>
 
 ServerWindow::ServerWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::ServerWindow)
@@ -23,7 +18,8 @@ ServerWindow::ServerWindow(QWidget *parent)
         return;
     }
 
-    statusUpdateTimer.start(5000);
+    connect(&tcpServer, &QTcpServer::newConnection, this, &ServerWindow::newClientConnection);
+
     logMessage("Server started on port " + QString::number(port));
     ui->statusbar->showMessage("Server is running on port " + QString::number(port));
 }
@@ -31,15 +27,10 @@ ServerWindow::ServerWindow(QWidget *parent)
 ServerWindow::~ServerWindow()
 {
     logMessage("Server shutting down...");
-    foreach (QTcpSocket *socket, clients.keys())
+    if (currentClient)
     {
-        removeClient(socket);
-    }
-    foreach (QProcess *process, clientProcesses)
-    {
-        process->terminate();
-        process->waitForFinished();
-        delete process;
+        currentClient->disconnectFromHost();
+        currentClient->deleteLater();
     }
     tcpServer.close();
     delete ui;
@@ -47,171 +38,113 @@ ServerWindow::~ServerWindow()
 
 void ServerWindow::newClientConnection()
 {
-    QTcpSocket *clientSocket = tcpServer.nextPendingConnection();
-    connect(clientSocket, &QTcpSocket::readyRead, this, &ServerWindow::readSocket);
-    connect(clientSocket, &QTcpSocket::disconnected, this, &ServerWindow::socketDisconnected);
-    connect(clientSocket, &QTcpSocket::errorOccurred, this, &ServerWindow::handleSocketError);
+    if (currentClient)
+    {
+        QTcpSocket *newClient = tcpServer.nextPendingConnection();
+        newClient->disconnectFromHost();
+        newClient->deleteLater();
+        logMessage("Rejected new connection - server already has a client", true);
+        return;
+    }
 
-    clients.insert(clientSocket, "Unknown");
-    setupPingTimer(clientSocket);
-    connectedClients++;
+    currentClient = tcpServer.nextPendingConnection();
+    connect(currentClient, &QTcpSocket::readyRead, this, &ServerWindow::readSocket);
+    connect(currentClient, &QTcpSocket::disconnected, this, &ServerWindow::socketDisconnected);
+    connect(currentClient, &QTcpSocket::errorOccurred, this, &ServerWindow::handleSocketError);
 
     QJsonObject welcomeMsg;
     welcomeMsg["type"] = "welcome";
     welcomeMsg["message"] = "Welcome to Casino Server!";
-    sendToClient(clientSocket, welcomeMsg);
+    sendToClient(welcomeMsg);
 
-    logMessage("New client connected from " + clientSocket->peerAddress().toString());
-    updateClientList();
+    logMessage("New client connected from " + currentClient->peerAddress().toString());
 }
 
 void ServerWindow::socketDisconnected()
 {
-    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
-    if (socket)
+    if (currentClient)
     {
-        removeClient(socket);
+        logMessage("Client disconnected");
+        currentClient->deleteLater();
+        currentClient = nullptr;
     }
 }
 
 void ServerWindow::handleSocketError(QAbstractSocket::SocketError error)
 {
-    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
-    if (socket)
+    if (currentClient)
     {
-        logMessage("Socket error: " + socket->errorString(), true);
-        removeClient(socket);
+        logMessage("Socket error: " + currentClient->errorString(), true);
+        currentClient->disconnectFromHost();
+        currentClient->deleteLater();
+        currentClient = nullptr;
     }
 }
 
 void ServerWindow::readSocket()
 {
-    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
-    if (!socket)
+    qDebug() << "Reading socket";
+    if (!currentClient)
         return;
 
-    QByteArray data = socket->readAll();
+    QByteArray data = currentClient->readAll();
     QJsonDocument doc = QJsonDocument::fromJson(data);
 
     if (doc.isObject())
     {
         QJsonObject obj = doc.object();
         QString type = obj["type"].toString();
-        QString message = obj["message"].toString();
 
         if (type == "login")
         {
-            QString oldName = clients.value(socket);
-            clients[socket] = message;
-            logMessage(oldName + " is now known as " + message);
-            sendToAllClients(message + " joined the casino", socket);
-            updateClientList();
+            qDebug() << "Login request received";
+            QString username = obj["username"].toString();
+            QString password = obj["password"].toString();
+            handleLogin(username, password);
         }
-        else if (type == "message")
+        else if (type == "register")
         {
-            QString username = clients.value(socket);
-            QString fullMessage = username + ": " + message;
-            logMessage(fullMessage);
-            sendToAllClients(fullMessage, socket);
-        }
-        else if (type == "ping")
-        {
-            QJsonObject pong;
-            pong["type"] = "pong";
-            pong["timestamp"] = QDateTime::currentMSecsSinceEpoch();
-            sendToClient(socket, pong);
+            qDebug() << "Register request received";
+            QString username = obj["username"].toString();
+            QString password = obj["password"].toString();
+            handleRegister(username, password);
         }
     }
 }
 
-void ServerWindow::sendToAllClients(const QString &message, QTcpSocket *exclude)
+void ServerWindow::handleLogin(const QString &username, const QString &password)
 {
-    QJsonObject obj;
-    obj["type"] = "message";
-    obj["message"] = message;
-    obj["timestamp"] = QDateTime::currentMSecsSinceEpoch();
-    QJsonDocument doc(obj);
-    QByteArray data = doc.toJson();
+    QJsonObject response;
+    response["type"] = "login_response";
+    response["success"] = registeredUsers.contains(username) && registeredUsers[username] == password;
+    response["username"] = username;
+    sendToClient(response);
+}
 
-    foreach (QTcpSocket *socket, clients.keys())
+void ServerWindow::handleRegister(const QString &username, const QString &password)
+{
+    QJsonObject response;
+    response["type"] = "register_response";
+
+    if (registeredUsers.contains(username) && username != "" && password != "")
     {
-        if (socket != exclude && socket->state() == QAbstractSocket::ConnectedState)
-        {
-            socket->write(data);
-        }
+        response["success"] = false;
     }
+    else
+    {
+        registeredUsers[username] = password;
+        response["success"] = true;
+    }
+
+    sendToClient(response);
 }
 
-void ServerWindow::sendToClient(QTcpSocket *client, const QJsonObject &message)
+void ServerWindow::sendToClient(const QJsonObject &message)
 {
-    if (client && client->state() == QAbstractSocket::ConnectedState)
+    if (currentClient && currentClient->state() == QAbstractSocket::ConnectedState)
     {
         QJsonDocument doc(message);
-        client->write(doc.toJson());
-    }
-}
-
-void ServerWindow::setupPingTimer(QTcpSocket *client)
-{
-    QTimer *timer = new QTimer(this);
-    timer->setInterval(30000);
-    connect(timer, &QTimer::timeout, [this, client]()
-            {
-        if (client->state() == QAbstractSocket::ConnectedState) {
-            QJsonObject ping;
-            ping["type"] = "ping";
-            ping["timestamp"] = QDateTime::currentMSecsSinceEpoch();
-            sendToClient(client, ping);
-        } });
-    timer->start();
-    clientPingTimers[client] = timer;
-}
-
-void ServerWindow::removeClient(QTcpSocket *socket)
-{
-    QString username = clients.value(socket);
-    logMessage(username + " disconnected");
-
-    if (clientPingTimers.contains(socket))
-    {
-        clientPingTimers[socket]->stop();
-        clientPingTimers[socket]->deleteLater();
-        clientPingTimers.remove(socket);
-    }
-
-    clients.remove(socket);
-    socket->deleteLater();
-    connectedClients--;
-    updateClientList();
-}
-
-void ServerWindow::updateClientList()
-{
-    QStringList clientList;
-    foreach (const QString &username, clients.values())
-    {
-        clientList << username;
-    }
-    ui->clientListWidget->clear();
-    ui->clientListWidget->addItems(clientList);
-}
-
-void ServerWindow::broadcastServerStatus()
-{
-    QJsonObject status;
-    status["type"] = "status";
-    status["connectedClients"] = connectedClients;
-    status["timestamp"] = QDateTime::currentMSecsSinceEpoch();
-
-    QJsonDocument doc(status);
-    QByteArray data = doc.toJson();
-
-    foreach (QTcpSocket *socket, clients.keys())
-    {
-        if (socket->state() == QAbstractSocket::ConnectedState)
-        {
-            socket->write(data);
-        }
+        currentClient->write(doc.toJson());
     }
 }
 

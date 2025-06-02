@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QDateTime>
 #include <QMessageBox>
+#include <QCryptographicHash>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
@@ -33,15 +34,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&socket, &QTcpSocket::errorOccurred, this, &MainWindow::handleSocketError);
     connect(&socket, &QTcpSocket::readyRead, this, &MainWindow::readSocket);
 
-    connect(&pingTimer, &QTimer::timeout, this, &MainWindow::sendPing);
-    connect(&reconnectTimer, &QTimer::timeout, this, &MainWindow::reconnectToServer);
-
-    connect(ui->sendButton, &QPushButton::clicked, this, &MainWindow::on_sendButton_clicked);
-    connect(ui->chatInput, &QLineEdit::returnPressed, this, &MainWindow::on_chatInput_returnPressed);
-
-    pingTimer.setInterval(30000);
-    reconnectTimer.setInterval(RECONNECT_INTERVAL);
-
     connectToServer();
 }
 
@@ -58,26 +50,12 @@ void MainWindow::connected()
 {
     isConnected = true;
     updateConnectionStatus(true);
-    reconnectAttempts = 0;
-    reconnectTimer.stop();
-    pingTimer.start();
-
-    if (!username.isEmpty())
-    {
-        login(username);
-    }
 }
 
 void MainWindow::disconnected()
 {
     isConnected = false;
     updateConnectionStatus(false);
-    pingTimer.stop();
-
-    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS)
-    {
-        reconnectTimer.start();
-    }
 }
 
 void MainWindow::handleSocketError(QAbstractSocket::SocketError error)
@@ -96,32 +74,7 @@ void MainWindow::readSocket()
     {
         QJsonObject obj = doc.object();
         QString type = obj["type"].toString();
-
-        if (type == "message")
-        {
-            QString message = obj["message"].toString();
-            ui->chatBrowser->append(message);
-        }
-        else if (type == "welcome")
-        {
-            handleWelcome(obj["message"].toString());
-        }
-        else if (type == "ping")
-        {
-            handlePing();
-        }
-        else if (type == "pong")
-        {
-            handlePong(obj["timestamp"].toVariant().toLongLong());
-        }
-        else if (type == "status")
-        {
-            handleServerStatus(obj["connectedClients"].toInt());
-        }
-        else if (type == "chat")
-        {
-            processServerMessage(obj);
-        }
+        processServerMessage(obj);
     }
 }
 
@@ -129,101 +82,69 @@ void MainWindow::processServerMessage(const QJsonObject &message)
 {
     QString type = message["type"].toString();
 
-    if (type == "chat")
+    if (type == "login_response")
     {
-        QString sender = message["sender"].toString();
-        QString content = message["content"].toString();
-        displayChatMessage(sender, content);
+        qDebug() << "Login response received";
+        bool success = message["success"].toBool();
+        if (success)
+        {
+            loginWindow->hide();
+            this->show();
+            username = message["username"].toString();
+            ui->usernameLabel->setText(username);
+            ui->LoginButton->setText("Log out");
+        }
+        else
+        {
+            QMessageBox::warning(this, "Login failed", "Invalid username or password");
+        }
     }
-    else if (type == "welcome")
+    else if (type == "register_response")
     {
-        QString content = message["content"].toString();
-        handleWelcome(content);
-    }
-    else if (type == "pong")
-    {
-        // Handle pong response if needed
+        qDebug() << "Register response received";
+        bool success = message["success"].toBool();
+        if (success)
+        {
+            QMessageBox::information(this, "Registration successful", "Registration successful");
+        }
+        else
+        {
+            QMessageBox::warning(this, "Registration failed", "Username already exists");
+        }
     }
 }
 
-void MainWindow::displayChatMessage(const QString &sender, const QString &message)
+void MainWindow::login(const QString &username, const QString &password)
 {
-    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
-    QString formattedMessage = QString("[%1] %2: %3").arg(timestamp, sender, message);
-    ui->chatBrowser->append(formattedMessage);
-}
-
-void MainWindow::sendMessage(const QString &message)
-{
-    if (socket.state() != QAbstractSocket::ConnectedState)
-    {
-        QMessageBox::warning(this, "Connection Error", "Not connected to server");
-        return;
-    }
-
-    QJsonObject jsonMessage;
-    jsonMessage["type"] = "chat";
-    jsonMessage["sender"] = username;
-    jsonMessage["content"] = message;
-    jsonMessage["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
-
-    QJsonDocument doc(jsonMessage);
-    socket.write(doc.toJson());
-}
-
-void MainWindow::login(const QString &username)
-{
+    qDebug() << "Logging in2";
     if (!isConnected)
         return;
 
-    this->username = username;
+    QByteArray passwordBytes = password.toUtf8();
+    QByteArray hashedPassword = QCryptographicHash::hash(passwordBytes, QCryptographicHash::Sha256).toHex();
+
     QJsonObject obj;
     obj["type"] = "login";
-    obj["message"] = username;
+    obj["username"] = username;
+    obj["password"] = QString(hashedPassword);
     QJsonDocument doc(obj);
+    qDebug() << "Sending login request";
     socket.write(doc.toJson());
 }
 
-void MainWindow::handlePing()
+void MainWindow::registerUser(const QString &username, const QString &password)
 {
-    QJsonObject pong;
-    pong["type"] = "pong";
-    pong["timestamp"] = QDateTime::currentMSecsSinceEpoch();
-    QJsonDocument doc(pong);
+    qDebug() << "Registering2";
+    QByteArray passwordBytes = password.toUtf8();
+    QByteArray hashedPassword = QCryptographicHash::hash(passwordBytes, QCryptographicHash::Sha256).toHex();
+
+    QJsonObject obj;
+    obj["type"] = "register";
+    obj["username"] = username;
+    obj["password"] = QString(hashedPassword);
+    QJsonDocument doc(obj);
+    qDebug() << "Sending register request";
     socket.write(doc.toJson());
-}
-
-void MainWindow::handlePong(qint64 timestamp)
-{
-    qint64 latency = QDateTime::currentMSecsSinceEpoch() - timestamp;
-    ui->statusbar->showMessage(QString("Server latency: %1 ms").arg(latency));
-}
-
-void MainWindow::handleServerStatus(int connectedClients)
-{
-    ui->statusbar->showMessage(QString("Connected clients: %1").arg(connectedClients));
-}
-
-void MainWindow::handleWelcome(const QString &message)
-{
-    ui->chatBrowser->append("<span style='color: green;'>" + message + "</span>");
-}
-
-void MainWindow::reconnectToServer()
-{
-    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS)
-    {
-        reconnectAttempts++;
-        ui->statusbar->showMessage(QString("Reconnecting... Attempt %1/%2")
-                                       .arg(reconnectAttempts)
-                                       .arg(MAX_RECONNECT_ATTEMPTS));
-        connectToServer();
-    }
-    else
-    {
-        ui->statusbar->showMessage("Failed to connect to server after multiple attempts");
-        reconnectTimer.stop();
-    }
 }
 
 void MainWindow::updateConnectionStatus(bool connected)
@@ -235,18 +156,6 @@ void MainWindow::updateConnectionStatus(bool connected)
     else
     {
         ui->statusbar->showMessage("Disconnected from server");
-    }
-}
-
-void MainWindow::sendPing()
-{
-    if (isConnected)
-    {
-        QJsonObject ping;
-        ping["type"] = "ping";
-        ping["timestamp"] = QDateTime::currentMSecsSinceEpoch();
-        QJsonDocument doc(ping);
-        socket.write(doc.toJson());
     }
 }
 
@@ -351,12 +260,28 @@ void MainWindow::updateMoneyDisplay(long money)
 
 void MainWindow::on_LoginButton_clicked()
 {
-    loginWindow = new LoginWindow();
-    connect(loginWindow, &LoginWindow::returnToMain, this, &MainWindow::show);
-    connect(loginWindow, &LoginWindow::returnToMain, loginWindow, &QWidget::close);
+    if (username == "")
+    {
+        loginWindow = new LoginWindow();
+        loginWindow->setMainWindow(this);
+        connect(loginWindow, &LoginWindow::returnToMain, this, &MainWindow::show);
+        connect(loginWindow, &LoginWindow::returnToMain, loginWindow, &QWidget::close);
 
-    loginWindow->show();
-    this->hide();
+        loginWindow->show();
+        this->hide();
+    }
+    else
+    {
+        QJsonObject obj;
+        obj["type"] = "logout";
+        QJsonDocument doc(obj);
+        qDebug() << "Sending logout request";
+        socket.write(doc.toJson());
+
+        username = "";
+        ui->LoginButton->setText("Log in");
+        ui->usernameLabel->setText("Guest");
+    }
 }
 
 void MainWindow::on_betAmountChanged(double value)
@@ -501,21 +426,6 @@ void MainWindow::resetMinigame2()
     // ui->resultLabel->setText("Place your bet and roll the dice!");
     // ui->resultLabel->setStyleSheet("");
     updateRollButtonState();
-}
-
-void MainWindow::on_sendButton_clicked()
-{
-    QString message = ui->chatInput->text().trimmed();
-    if (!message.isEmpty())
-    {
-        sendMessage(message);
-        ui->chatInput->clear();
-    }
-}
-
-void MainWindow::on_chatInput_returnPressed()
-{
-    on_sendButton_clicked();
 }
 
 MainWindow::~MainWindow()
