@@ -26,6 +26,7 @@ QT_END_NAMESPACE
 
 class Minigame1;
 class Minigame2;
+class Minigame3;
 
 class MainWindow : public QMainWindow
 {
@@ -63,6 +64,8 @@ private slots:
     void on_selectionChanged(bool selected);
     void rollDices();
     void resetMinigame2();
+    void on_halfButton3_clicked();
+    void on_doubleButton3_clicked();
 
     void connectToServer();
     void connected();
@@ -84,12 +87,15 @@ private:
     void addWorkEarnings();
     void setGuessButtonsEnabled(bool enabled);
     void updateRollButtonState();
+    void setupMinigame3Connections();
+    void updatePlayButtonState();
     void updateConnectionStatus(bool connected);
 
     Ui::MainWindow *ui;
     LoginWindow *loginWindow = nullptr;
     Minigame1 *minigame1 = nullptr;
     Minigame2 *minigame2 = nullptr;
+    Minigame3 *minigame3;
     long playerBalance = 10000;
     bool ANIMATION_MODE = false;
     int playerRoll = 0;

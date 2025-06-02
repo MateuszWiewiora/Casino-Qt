@@ -8,6 +8,7 @@ set(PROJECT_SOURCES
     clickablelabel.h clickablelabel.cpp
     minigame1.h minigame1.cpp
     minigame2.h minigame2.cpp
+    minigame3.h minigame3.cpp
 )
 
 add_library(casino-client STATIC
@@ -22,6 +23,7 @@ target_link_libraries(casino-client PUBLIC
 
 target_include_directories(casino-client PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)

@@ -9,6 +9,7 @@
 #include <QRandomGenerator>
 #include "minigame1.h"
 #include "minigame2.h"
+#include "minigame3.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QDateTime>
@@ -168,12 +169,19 @@ void MainWindow::setupMinigames()
 {
     minigame1 = new Minigame1(this, playerBalance);
     minigame2 = new Minigame2(this, playerBalance);
+    minigame3 = new Minigame3(this, ui, playerBalance);
 
     setupMinigame1Connections();
     setupMinigame2Connections();
+    setupMinigame3Connections();
 
     minigame1->createAndSetupClickableLabels(this, ui);
     minigame1->setupInitialGameImages();
+
+    if (minigame3)
+    {
+        minigame3->resetGame();
+    }
 }
 
 void MainWindow::setupMinigame1Connections()
@@ -183,6 +191,14 @@ void MainWindow::setupMinigame1Connections()
     connect(minigame1, &Minigame1::selectionChanged, this, &MainWindow::updateBetButtonState);
     connect(minigame1, &Minigame1::option1NameUpdated, ui->option1NameLabel, &QLabel::setText);
     connect(minigame1, &Minigame1::option2NameUpdated, ui->option2NameLabel, &QLabel::setText);
+}
+
+void MainWindow::setupMinigame3Connections()
+{
+    connect(minigame3, &Minigame3::moneyUpdated, this, &MainWindow::updateMoneyDisplay);
+    connect(minigame3, &Minigame3::gameStatusUpdated, ui->gameStatusLabel3, &QLabel::setText);
+    connect(minigame3, &Minigame3::playButtonEnabled, ui->playButton3, &QPushButton::setEnabled);
+    connect(ui->playButton3, &QPushButton::clicked, minigame3, &Minigame3::confirmBetAndStartGame);
 }
 
 void MainWindow::setupMinigame2Connections()
@@ -205,6 +221,8 @@ void MainWindow::setupBetAmountConnections()
     connect(ui->doubleSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &MainWindow::on_betAmountChanged);
     connect(ui->doubleSpinBox2, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            this, &MainWindow::on_betAmountChanged);
+    connect(ui->doubleSpinBox3, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &MainWindow::on_betAmountChanged);
 }
 
@@ -294,6 +312,10 @@ void MainWindow::on_betAmountChanged(double value)
     {
         updateRollButtonState();
     }
+    else if (ui->stackedWidget->currentIndex() == 3)
+    {
+        updatePlayButtonState();
+    }
 }
 
 void MainWindow::updateBetButtonState()
@@ -323,6 +345,8 @@ void MainWindow::updateBetAmountLimits()
     ui->doubleSpinBox->setMaximum(maxBet);
     ui->doubleSpinBox2->setMinimum(0.0);
     ui->doubleSpinBox2->setMaximum(maxBet);
+    ui->doubleSpinBox3->setMinimum(0.0);
+    ui->doubleSpinBox3->setMaximum(maxBet);
 }
 
 void MainWindow::on_doubleButton_clicked()
@@ -404,6 +428,27 @@ void MainWindow::updateRollButtonState()
     ui->rollButton->setEnabled(hasValidBet);
 }
 
+void MainWindow::updatePlayButtonState()
+{
+    bool hasValidBet = ui->doubleSpinBox3->value() > 0.0;
+    ui->playButton3->setEnabled(hasValidBet);
+}
+
+void MainWindow::on_halfButton3_clicked()
+{
+    double currentBet = ui->doubleSpinBox3->value();
+    double halvedBet = std::round((currentBet / 2) * 100) / 100;
+    ui->doubleSpinBox3->setValue(halvedBet);
+}
+
+void MainWindow::on_doubleButton3_clicked()
+{
+    double currentBet = ui->doubleSpinBox3->value();
+    double doubledBet = currentBet * 2;
+    double maxBet = static_cast<double>(playerBalance) / 100.;
+    ui->doubleSpinBox3->setValue(std::min(doubledBet, maxBet));
+}
+
 void MainWindow::on_selectionChanged(bool selected)
 {
     updateBetButtonState();
@@ -434,4 +479,5 @@ MainWindow::~MainWindow()
     delete loginWindow;
     delete minigame1;
     delete minigame2;
+    delete minigame3;
 }
